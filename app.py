@@ -1,5 +1,6 @@
 import numpy as np
 from hydraulic_network import Hydraulics
+from plots import PlotaRede
 
 def main():
     # Matriz conec, da apostila.

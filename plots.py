@@ -5,7 +5,7 @@ def PlotaRede(conec, Xno, p, q):
 
     edges = conec
     coord = Xno
-    nv = np.max(np.max(conec))+1
+    nv = np.max(np.max(conec))
     nc = conec.shape[0]
 
     # Internal: get edge and midpoint coordinates
