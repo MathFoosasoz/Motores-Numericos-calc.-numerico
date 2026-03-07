@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from hydraulic_network import Hydraulics
 from plots import PlotaRede
 
@@ -24,10 +25,19 @@ def main():
 
     test = Hydraulics(conec, C, n_atm, nB, QB)
 
+# Coordenadas dos nós (com valores de exemplo da apostila)
+    Xno = np.array([[0,0],
+                    [1,0],
+                    [2,0],
+                    [2,1],
+                    [1,1]])
+    
     print(f"Solução das pressões em cada nó: {test.results['P']}")
     print(f"Solução das vazões em cada cano: {test.results['Q']}")
     print(f"Solução da potência dissipada pelo sistema: {test.results['W']}")
 
+    PlotaRede(conec, Xno, test.results['P'], test.results['Q'])
+    plt.show()
 
 if __name__ == "__main__":
     main()

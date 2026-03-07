@@ -1,5 +1,6 @@
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
+from matplotlib import cm
 
 def PlotaRede(conec, Xno, p, q):
 
@@ -12,8 +13,8 @@ def PlotaRede(conec, Xno, p, q):
     segs = []
     mids = []
     for (i, j) in edges:
-      x1, y1 = coord[i,0], coord[i,1]
-      x2, y2 = coord[j,0], coord[j,1]
+      x1, y1 = coord[i-1,0], coord[i-1,1]
+      x2, y2 = coord[j-1,0], coord[j-1,1]
       segs.append(((x1, y1), (x2, y2)))
       mids.append(((x1 + x2) / 2.0, (y1 + y2) / 2.0))
 
@@ -55,7 +56,7 @@ def PlotaRede(conec, Xno, p, q):
         nx, ny = -dyn, dxn  # normal vector
 
         # --- Flux arrow (black) ---
-        p1, p2 = p[edges[idx,0]], p[edges[idx,1]]
+        p1, p2 = p[edges[idx,0]-1], p[edges[idx,1]-1]
         q_dir = 1 if p1 > p2 else -1
 
         ax.annotate(
