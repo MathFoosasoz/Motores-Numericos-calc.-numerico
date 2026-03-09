@@ -1,12 +1,12 @@
 import numpy as np
 
 class Hydraulics():
-    def __init__(self, conec, C, natm, nB, QB):
+    def __init__(self, conec, Xno, natm, nB, QB):
         self.conec = conec
-        self.C = C
+        self.Xno = Xno
 
         self.num_nodes = np.max(conec)   # O número de nós pode ser recuperado a partir do maior nó da conec
-        self.num_pipes = np.shape(C)[0]  # O número de canos pode ser recuperado a partir do número de linhas da matriz C
+        self.num_pipes = np.shape(conec)[0]  # O número de canos pode ser recuperado a partir do número de linhas da matriz C
 
         self.node_atm = natm -1          # Indice do nó que está aberto para atmosfera (pressão nesse nó = 0)
         self.node_b = nB -1              # Indice do nó que está ligado à bomba de fluido (vazão nesse nó = QB)
@@ -16,8 +16,30 @@ class Hydraulics():
         self.results = {'P': None, 'Q': None, 'W': None} 
         self.calculate_flow_rate_and_potency()
 
-       
+    def calculate_conductancy(self, pipe_area = 2.5*(10**-7), viscosity = 0.001):
+
+            hydraulic_diameter = (4*pipe_area/np.pi)**0.5 
+            const_K = np.pi*(hydraulic_diameter**4)/(128*viscosity)
+
+            C = np.zeros(shape = self.conec.shape[0])
+
+            for index, connection in enumerate(self.conec):
+                node_start, node_end = connection
+
+                x_start, y_start = self.Xno[node_start-1]
+                x_end, y_end = self.Xno[node_end-1]
+
+                Lk = ((x_start-x_end)**2 + (y_start-y_end)**2)**0.5
+
+                C[index]= const_K/Lk
+
+            self.C = C
+            return C
+
+
     def Assembly(self):
+        self.calculate_conductancy() # Gera a matriz C de condutâncias
+
         A = np.zeros(shape=(self.num_nodes,self.num_nodes)) # matriz quadrada de dimensão igual ao número de nós, preenchida totalmente com zeros
 
         for index, conectivity in enumerate(self.C):
