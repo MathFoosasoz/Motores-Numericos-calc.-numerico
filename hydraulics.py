@@ -1,25 +1,28 @@
 import numpy as np
 
 class Hydraulics():
-    def __init__(self, conec, Xno, natm, nB, QB):
+    def __init__(self, conec, Xno, config):
         self.conec = conec
         self.Xno = Xno
 
-        self.num_nodes = np.max(conec)   # O número de nós pode ser recuperado a partir do maior nó da conec
-        self.num_pipes = np.shape(conec)[0]  # O número de canos pode ser recuperado a partir do número de linhas da matriz C
+        self.num_nodes = np.max(conec)          # O número de nós pode ser recuperado a partir do maior nó da conec
+        self.num_pipes = np.shape(conec)[0]     # O número de canos pode ser recuperado a partir do número de linhas da matriz C
 
-        self.node_atm = natm -1          # Indice do nó que está aberto para atmosfera (pressão nesse nó = 0)
-        self.node_b = nB -1              # Indice do nó que está ligado à bomba de fluido (vazão nesse nó = QB)
-        self.QB = QB                     # Vazão de entrada na rede
+        self.node_outlet = int(config["N_OUTLET"]) - 1      # Indice do nó que está aberto para atmosfera (pressão nesse nó = 0)
+        self.node_inlet = int(config["N_INLET"]) -1         # Indice do nó que está ligado à bomba de fluido (vazão nesse nó = QB)
+        self.inlet = float(config["INLET"])                 # Vazão de entrada na rede
+        self.outlet = float(config["OUTLET"])               # Pressão de saída da rede
+        self.pipe_area = float(config["PIPE_AREA"])         # Área da seção transversal do cano
+        self.viscosity = float(config["VISCOSITY"])         # Viscosidade do fluido
 
         # P = pressões, Q = Vazões nos canos, W = Potência dissipada
         self.results = {'P': None, 'Q': None, 'W': None} 
         self.calculate_flow_rate_and_potency()
 
-    def calculate_conductancy(self, pipe_area = 2.5*(10**-7), viscosity = 0.001):
+    def calculate_conductancy(self):
 
-            hydraulic_diameter = (4*pipe_area/np.pi)**0.5 
-            const_K = np.pi*(hydraulic_diameter**4)/(128*viscosity)
+            hydraulic_diameter = (4*self.pipe_area/np.pi)**0.5 
+            const_K = np.pi*(hydraulic_diameter**4)/(128*self.viscosity)
 
             C = np.zeros(shape = self.conec.shape[0])
 
@@ -59,13 +62,14 @@ class Hydraulics():
     def solveNetwork(self):
         A_tilde = self.Assembly()                       # Gera a matriz A
 
-        A_tilde[self.node_atm, :] = 0                   # A linha i == node_atm deve ser completamente zerada...
-        A_tilde[self.node_atm, self.node_atm] = 1       # menos na posição i == j == node_atm. Nessa posição deve ser colocado o valor 1
+        A_tilde[self.node_outlet, :] = 0                   # A linha i == node_atm deve ser completamente zerada...
+        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_atm. Nessa posição deve ser colocado o valor 1
 
         num_nodes = A_tilde.shape[0]                    # O número de nós pode ser recuperado a partir do número de linhas da matriz A_tilde
 
         b_vector = np.zeros(shape=(num_nodes))          # O vetor b é uma linha da dimensão do número de nós, formado inteiramente de zeros menos...
-        b_vector[self.node_b] = self.QB                 # no indice onde há vazão
+        b_vector[self.node_inlet] = self.inlet          # no indice onde há vazão ...
+        b_vector[self.node_outlet] = self.outlet        # e no indice onde é aberto pra pressão externa (n_atm)
 
         pressures = np.linalg.solve(A_tilde, b_vector)  # Resolução do sistema A_tilde * pressures = b_vector
 
