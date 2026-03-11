@@ -8,16 +8,16 @@ class Hydraulics():
         self.num_nodes = np.max(conec)          # O número de nós pode ser recuperado a partir do maior nó da conec
         self.num_pipes = np.shape(conec)[0]     # O número de canos pode ser recuperado a partir do número de linhas da matriz C
 
-        self.node_outlet = int(config["N_OUTLET"]) - 1      # Indice do nó que está aberto para atmosfera (pressão nesse nó = 0)
-        self.node_inlet = int(config["N_INLET"]) -1         # Indice do nó que está ligado à bomba de fluido (vazão nesse nó = QB)
-        self.inlet = float(config["INLET"])                 # Vazão de entrada na rede
+        self.node_outlet = int(config["N_OUTLET"]) - 1      # Indice do nó que está aberto para atmosfera (pressão nesse nó = OUTLET)
+        self.node_inlet = int(config["N_INLET"]) - 1        # Indice do nó que está ligado à bomba de fluido (vazão nesse nó = INLET)
+        self.inlet = float(config["INLET_FLOW"])                 # Vazão de entrada na rede
         self.outlet = float(config["OUTLET"])               # Pressão de saída da rede
         self.pipe_area = float(config["PIPE_AREA"])         # Área da seção transversal do cano
         self.viscosity = float(config["VISCOSITY"])         # Viscosidade do fluido
 
         # P = pressões, Q = Vazões nos canos, W = Potência dissipada
         self.results = {'P': None, 'Q': None, 'W': None} 
-        self.calculate_flow_rate_and_potency()
+        
 
     def calculate_conductancy(self):
 
@@ -63,7 +63,7 @@ class Hydraulics():
         A_tilde = self.Assembly()                       # Gera a matriz A
 
         A_tilde[self.node_outlet, :] = 0                   # A linha i == node_atm deve ser completamente zerada...
-        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_atm. Nessa posição deve ser colocado o valor 1
+        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_atm. Nessa posição deve ser colocado o valor 1    
 
         num_nodes = A_tilde.shape[0]                    # O número de nós pode ser recuperado a partir do número de linhas da matriz A_tilde
 
@@ -110,3 +110,40 @@ class Hydraulics():
         self.results['W'] = W
 
         return (Q,W)
+
+# Usando herança de classe, podemos modificar facilmente as funções que se relacionam aos problemas extras
+# e reutilizar da classe pai aquilo que é mantido
+class Hydraulics_p3(Hydraulics):
+    def __init__(self, conec, Xno, config):
+        super().__init__(conec, Xno, config)
+
+        self.inlet = float(config["INLET_PRESSURE"])    # Pressão de entrada na rede
+
+    def Assembly(self):
+        return super().Assembly()
+
+    def solveNetwork(self):
+        A_tilde = self.Assembly()
+
+        # Definindo as equações de controle
+        A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
+        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_outlet. Nessa posição deve ser colocado o valor 1
+
+        A_tilde[self.node_inlet, :] = 0                       # A linha i == node_inlet deve ser completamente zerada...
+        A_tilde[self.node_inlet, self.node_inlet] = 1         # menos na posição i == j == node_inlet. Nessa posição deve ser colocado o valor 1
+    
+        b_vector = np.zeros(shape = (self.num_nodes))
+        b_vector[self.node_inlet] = self.inlet
+        b_vector[self.node_outlet] = self.outlet 
+        
+        pressures = np.linalg.solve(A_tilde, b_vector)        # Solução do sistema A_tilde * pressures = b_vector
+        self.results['P'] = pressures                         # Coloca o resultado das pressões no dicionário de resultados
+
+        return pressures
+    
+    def calculate_conductancy(self):
+        return super().calculate_conductancy()
+    
+    def calculate_flow_rate_and_potency(self):
+        return super().calculate_flow_rate_and_potency()
+    
