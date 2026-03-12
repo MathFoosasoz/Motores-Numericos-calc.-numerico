@@ -1,5 +1,7 @@
 import numpy as np
 from json import loads
+from ploting import PlotaMaxPressao, PlotaRede
+import matplotlib.pyplot as plt
 
 class Hydraulics():
     def __init__(self, conec, Xno, config):
@@ -39,7 +41,6 @@ class Hydraulics():
 
             self.C = C
             return C
-
 
     def Assembly(self):
         self.calculate_conductancy() # Gera a matriz C de condutâncias
@@ -110,7 +111,23 @@ class Hydraulics():
         self.results['W'] = W
 
         return (Q,W)
+    
+    def run(self, print_info, plot):
 
+        self.calculate_flow_rate_and_potency()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Solução das pressões em cada nó: {self.results['P']}")
+            print(f"Solução das vazões em cada cano: {self.results['Q']}")
+            print(f"Solução da potência dissipada pelo sistema: {self.results['W']}\n\n")
+            
+
+        if plot:
+            PlotaRede(self.conec, 1000*self.Xno, self.results['P'], self.results['Q'])
+            plt.show()
+
+        
 # Usando herança de classe, podemos modificar facilmente as funções que se relacionam aos problemas extras
 # e reutilizar da classe pai aquilo que é mantido
 
@@ -120,6 +137,9 @@ class Hydraulics_p3(Hydraulics):
 
         self.inlet = float(config["INLET_PRESSURE"])    # Pressão de entrada na rede
 
+    def calculate_conductancy(self):
+        return super().calculate_conductancy()
+    
     def Assembly(self):
         return super().Assembly()
 
@@ -142,11 +162,11 @@ class Hydraulics_p3(Hydraulics):
 
         return pressures
     
-    def calculate_conductancy(self):
-        return super().calculate_conductancy()
-    
     def calculate_flow_rate_and_potency(self):
         return super().calculate_flow_rate_and_potency()
+    
+    def run(self, print_info, plot):
+        return super().run(print_info, plot)
     
 
 class Hydraulics_p4(Hydraulics):
@@ -201,6 +221,18 @@ class Hydraulics_p4(Hydraulics):
 
     def calculate_conductancy(self):
         return super().calculate_conductancy()
+    
+    def run(self, print_info, plot):
+        
+        max_pressures = self.find_max_pressures_over_time()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Pressões ao longo do tempo: {max_pressures}\n\n")
+
+        if plot:
+            PlotaMaxPressao(max_pressures, self.time)
+            plt.show()
 
 
 class Hydraulics_p5(Hydraulics):
@@ -212,6 +244,9 @@ class Hydraulics_p5(Hydraulics):
 
         self.time = time_dict["t"]
         
+    def calculate_conductancy(self):
+        return super().calculate_conductancy()
+    
     def Assembly(self):
         return super().Assembly()
 
@@ -258,6 +293,15 @@ class Hydraulics_p5(Hydraulics):
         return np.array(max_pressures)
 
 
-    def calculate_conductancy(self):
-        return super().calculate_conductancy()
+    def run(self, print_info, plot):
+        
+        max_pressures = self.find_max_pressures_over_time()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Pressões ao longo do tempo: {max_pressures}\n\n")
+
+        if plot:
+            PlotaMaxPressao(max_pressures, self.time)
+            plt.show()
     

@@ -124,13 +124,9 @@ def PlotaRede(conec, Xno, p, q):
     return fig, ax
 
 
-def PlotaMaxPressao(pressures, config):
+def PlotaMaxPressao(pressures, time_constants):
 
-  time_dict = loads(config["TIME_ANALYSIS"]) 
-   
-  time_constants = time_dict["t"]
-
-  time = np.linspace(time_constants[0], time_constants[1], time_constants[2])
+  time = np.linspace(float(time_constants[0]), float(time_constants[1]), int(time_constants[2]))
 
   plt.figure(figsize=(8, 4)) 
   plt.plot(time, pressures, color='red')
