@@ -189,9 +189,6 @@ class Hydraulics_p4(Hydraulics):
         amp = self.inlet["A"]
 
         b_vector = np.zeros(shape = (self.num_nodes))
-        b_vector[node_entry] = amp * mL_to_m3
-        
-        pressures = np.linalg.solve(A_tilde, b_vector)
                  
         # Primeiro vamos resolver apenas para as constante A que multiplica o seno, e depois...
         # na função de achar as máximas pressões vamos multiplicar os resultados por ...
