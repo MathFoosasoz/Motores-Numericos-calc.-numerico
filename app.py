@@ -1,13 +1,12 @@
 import matplotlib.pyplot as plt
-import os
-from dotenv import dotenv_values
 
+from env import CONFIG
 from hydraulics import Hydraulics, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
 from ploting import PlotaRede, PlotaMaxPressao
 from data_structures import GeraGrafo
 
 def main():
-    config = dotenv_values(".env")
+    config = CONFIG
 
     Xno, conec = GeraGrafo(levels=3)
     mm_to_m = 0.001

@@ -1,5 +1,4 @@
 import numpy as np
-from json import loads
 from ploting import PlotaMaxPressao, PlotaRede
 import matplotlib.pyplot as plt
 
@@ -8,20 +7,19 @@ class Hydraulics():
         self.conec = conec
         self.Xno = Xno
 
-        self.num_nodes = np.max(conec)                      # O número de nós pode ser recuperado a partir do maior nó da conec
-        self.num_pipes = np.shape(conec)[0]                 # O número de canos pode ser recuperado a partir do número de linhas da matriz C
+        self.num_nodes = np.max(conec)              # O número de nós pode ser recuperado a partir do maior nó da conec
+        self.num_pipes = np.shape(conec)[0]         # O número de canos pode ser recuperado a partir do número de linhas da matriz C
 
-        self.node_outlet = int(config["N_OUTLET"]) - 1      # Indice do nó que está aberto para atmosfera (pressão nesse nó = OUTLET)
-        self.node_inlet = int(config["N_INLET"]) - 1        # Indice do nó que está ligado à bomba de fluido (vazão nesse nó = INLET)
-        self.inlet = float(config["INLET_FLOW"])            # Vazão de entrada na rede
-        self.outlet = float(config["OUTLET"])               # Pressão de saída da rede
-        self.pipe_area = float(config["PIPE_AREA"])         # Área da seção transversal do cano
-        self.viscosity = float(config["VISCOSITY"])         # Viscosidade do fluido
+        self.node_outlet = config["N_OUTLET"] - 1   # Indice do nó que está aberto para atmosfera (pressão nesse nó = OUTLET)
+        self.node_inlet = config["N_INLET"] - 1     # Indice do nó que está ligado à bomba de fluido (vazão nesse nó = INLET)
+        self.inlet = config["INLET_FLOW"]           # Vazão de entrada na rede
+        self.outlet = config["OUTLET"]              # Pressão de saída da rede
+        self.pipe_area = config["PIPE_AREA"]        # Área da seção transversal do cano
+        self.viscosity = config["VISCOSITY"]        # Viscosidade do fluido
 
         # P = pressões, Q = Vazões nos canos, W = Potência dissipada
         self.results = {'P': None, 'Q': None, 'W': None} 
         
-
     def calculate_conductancy(self):
 
             hydraulic_diameter = (4*self.pipe_area/np.pi)**0.5 
@@ -135,7 +133,7 @@ class Hydraulics_p3(Hydraulics):
     def __init__(self, conec, Xno, config):
         super().__init__(conec, Xno, config)
 
-        self.inlet = float(config["INLET_PRESSURE"])    # Pressão de entrada na rede
+        self.inlet = config["INLET_PRESSURE"]    # Pressão de entrada na rede
 
     def calculate_conductancy(self):
         return super().calculate_conductancy()
@@ -173,9 +171,8 @@ class Hydraulics_p4(Hydraulics):
     def __init__(self, conec, Xno, config):
         super().__init__(conec, Xno, config)
 
-        self.inlet = loads(config["INLET_FLOW_SIN_DICT"])   
-        time_dict = loads(config["TIME_ANALYSIS"])    
-        self.time = time_dict["t"] 
+        self.inlet = config["INLET_FLOW_SIN_DICT"] 
+        self.time = config["TIME_ANALYSIS"]
 
     def Assembly(self):
         return super().Assembly()
@@ -186,27 +183,35 @@ class Hydraulics_p4(Hydraulics):
         A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
         A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_outlet. Nessa posição deve ser colocado o valor 1
 
-        b_vector = np.zeros(shape = (self.num_nodes))
         mL_to_m3 = 0.000001
 
+        node_entry = self.inlet["N_INLET"] - 1
+        amp = self.inlet["A"]
+
+        b_vector = np.zeros(shape = (self.num_nodes))
+        b_vector[node_entry] = amp * mL_to_m3
+        
+        pressures = np.linalg.solve(A_tilde, b_vector)
+                 
         # Primeiro vamos resolver apenas para as constante A que multiplica o seno, e depois...
-        # vamos multiplicar os resultados pela sen(t*omega + theta) para cada tempo da análise.
+        # na função de achar as máximas pressões vamos multiplicar os resultados por ...
+        # f(t) = sen(t*omega + theta) para cada tempo da análise.
         # Esse procedimento pode ser realisado por causa da linearidade
-        b_vector[int(self.inlet["N_INLET"])-1] = float(self.inlet["A"]) * mL_to_m3 
-        pressures_without_sin = np.linalg.solve(A_tilde, b_vector)
+        b_vector[node_entry] = amp * mL_to_m3
+        pressures = np.linalg.solve(A_tilde, b_vector)
                 
-        return pressures_without_sin
+        return pressures
     
     def find_max_pressures_over_time(self):
         # Primeiro pegamos os resultados sem o seno
         pressures_without_sin = self.solveNetwork()
 
-        theta = np.radians(float(self.inlet["theta"]))
-        omega = float(self.inlet['omega'])
+        theta = np.radians(self.inlet["theta"])
+        omega = self.inlet['omega']
 
-        time_start = float(self.time[0])
-        time_end = float(self.time[1])
-        increments = int(self.time[2])
+        time_start = self.time[0]
+        time_end = self.time[1]
+        increments = self.time[2]
 
         time = np.linspace(time_start, time_end, increments)
         max_pressures = []
@@ -239,10 +244,9 @@ class Hydraulics_p5(Hydraulics):
     def __init__(self, conec, Xno, config):
         super().__init__(conec, Xno, config)
 
-        self.inlet = [loads(config["INLET_FLOW_SIN_DICT"]), loads(config["INLET_FLOW_COS_DICT"])]
-        time_dict = loads(config["TIME_ANALYSIS"])    
+        self.inlet = [config["INLET_FLOW_SIN_DICT"], config["INLET_FLOW_COS_DICT"]] 
 
-        self.time = time_dict["t"]
+        self.time = config["TIME_ANALYSIS"]
         
     def calculate_conductancy(self):
         return super().calculate_conductancy()
@@ -259,29 +263,34 @@ class Hydraulics_p5(Hydraulics):
         
         mL_to_m3 = 0.000001
 
+        node_entry_sin = self.inlet[0]["N_INLET"] - 1
+        node_entry_cos = self.inlet[1]["N_INLET"] - 1
+
+        amp_sin = self.inlet[0]["A"]
+        amp_cos = self.inlet[1]["A"]
+
         b_vector_sin = np.zeros(shape = (self.num_nodes))
         b_vector_cos = np.zeros(shape = (self.num_nodes))
-
-        b_vector_sin[int(self.inlet[0]["N_INLET"])-1] = float(self.inlet[0]["A"]) * mL_to_m3
-        b_vector_cos[int(self.inlet[1]["N_INLET"])-1] = float(self.inlet[1]["A"]) * mL_to_m3
+        b_vector_sin[node_entry_sin] = amp_sin * mL_to_m3
+        b_vector_cos[node_entry_cos] = amp_cos * mL_to_m3
         
-        pressures_without_sin = np.linalg.solve(A_tilde, b_vector_sin)
-        pressures_without_cos = np.linalg.solve(A_tilde, b_vector_cos)
+        pressures_sin = np.linalg.solve(A_tilde, b_vector_sin)
+        pressures_cos = np.linalg.solve(A_tilde, b_vector_cos)
                  
-        return pressures_without_sin, pressures_without_cos
+        return pressures_sin, pressures_cos
     
     def find_max_pressures_over_time(self):
         pressures_without_sin, pressures_without_cos = self.solveNetwork()
 
-        theta_sin = np.radians(float(self.inlet[0]["theta"]))
-        theta_cos = np.radians(float(self.inlet[1]["theta"]))
+        theta_sin = np.radians(self.inlet[0]["theta"])
+        theta_cos = np.radians(self.inlet[1]["theta"])
 
-        omega_sin = float(self.inlet[0]['omega'])
-        omega_cos = float(self.inlet[1]['omega'])
+        omega_sin = self.inlet[0]['omega']
+        omega_cos = self.inlet[1]['omega']
 
-        time_start = float(self.time[0])
-        time_end = float(self.time[1])
-        increments = int(self.time[2])
+        time_start = self.time[0]
+        time_end = self.time[1]
+        increments = self.time[2]
 
         time = np.linspace(time_start, time_end, num = increments)
         max_pressures = []
