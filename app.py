@@ -1,7 +1,3 @@
-import tkinter
-import matplotlib
-matplotlib.use("tkagg")
-
 import matplotlib.pyplot as plt
 import os
 from dotenv import dotenv_values
