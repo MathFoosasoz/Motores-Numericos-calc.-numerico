@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from json import loads
 
 def PlotaRede(conec, Xno, p, q):
 
@@ -121,3 +122,19 @@ def PlotaRede(conec, Xno, p, q):
       plt.show()
 
     return fig, ax
+
+
+def PlotaMaxPressao(pressures, config):
+
+  time_dict = loads(config["TIME_ANALYSIS"]) 
+   
+  time_constants = time_dict["t"]
+
+  time = np.linspace(time_constants[0], time_constants[1], time_constants[2])
+
+  plt.figure(figsize=(8, 4)) 
+  plt.plot(time, pressures, color='red')
+  plt.xlabel("Tempo (s)")
+  plt.ylabel("Pressão (Pa)")
+  plt.title("Pressão máxima na rede de acordo com o tempo")
+  plt.grid(True)
