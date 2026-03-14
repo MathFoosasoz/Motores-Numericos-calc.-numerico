@@ -1,8 +1,5 @@
-import matplotlib.pyplot as plt
-
 from env import CONFIG
 from hydraulics import Hydraulics, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
-from ploting import PlotaRede, PlotaMaxPressao
 from data_structures import GeraGrafo
 
 def main():
@@ -12,13 +9,11 @@ def main():
     mm_to_m = 0.001
     Xno = Xno * mm_to_m
 
-    conec = conec + 1
-
     test = Hydraulics(conec, Xno, config)
     test.run(print_info = True, plot = True)
   
     test_p3 = Hydraulics_p3(conec, Xno, config)
-    test_p3.run(print_info = True, plot = True)
+    test_p3.run(print_info = True, plot = False)
 
     test_p4 = Hydraulics_p4(conec, Xno, config)
     test_p4.run(print_info = True, plot = True)

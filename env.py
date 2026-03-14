@@ -19,13 +19,13 @@ CONFIG:
 """
 
 CONFIG = {
-    "N_INLET": 1,          
-    "INLET_FLOW": 0.0000001,    
+    "N_INLET": 0,          
+    "INLET_FLOW": 1.0e-7,    
     "INLET_PRESSURE": 100,
     "INLET_FLOW_DICT": {"0": 1.0e-7, "175": 1.0e-6},
     "INLET_PRESSURE_DICT": {"0": 1.0e-7, "175": 1.0e-6},
-    "INLET_FLOW_SIN_DICT": {"N_INLET": 1, "A": 0.1, "omega": 3, "theta": 0},
-    "INLET_FLOW_COS_DICT": {"N_INLET": 176, "A": 0.01, "omega": 4, "theta": 0},
+    "INLET_FLOW_SIN_DICT": {"N_INLET": 0, "A": 0.1, "omega": 3, "theta": 0},
+    "INLET_FLOW_COS_DICT": {"N_INLET": 175, "A": 0.01, "omega": 4, "theta": 0},
 
     "N_OUTLET": 5,
     "OUTLET": 0,

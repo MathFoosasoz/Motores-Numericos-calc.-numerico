@@ -6,15 +6,15 @@ def PlotaRede(conec, Xno, p, q):
 
     edges = conec
     coord = Xno
-    nv = np.max(np.max(conec))
+    nv = np.max(np.max(conec))+1
     nc = conec.shape[0]
 
     # Internal: get edge and midpoint coordinates
     segs = []
     mids = []
     for (i, j) in edges:
-      x1, y1 = coord[i-1,0], coord[i-1,1]
-      x2, y2 = coord[j-1,0], coord[j-1,1]
+      x1, y1 = coord[i,0], coord[i,1]
+      x2, y2 = coord[j,0], coord[j,1]
       segs.append(((x1, y1), (x2, y2)))
       mids.append(((x1 + x2) / 2.0, (y1 + y2) / 2.0))
 
