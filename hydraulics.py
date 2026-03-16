@@ -7,7 +7,7 @@ class Hydraulics():
         self.conec = conec
         self.Xno = Xno
 
-        self.num_nodes = np.max(conec) +1              # O número de nós pode ser recuperado a partir do maior nó da conec
+        self.num_nodes = np.max(conec) +1           # O número de nós pode ser recuperado a partir do maior nó da conec
         self.num_pipes = np.shape(conec)[0]         # O número de canos pode ser recuperado a partir do número de linhas da matriz C
 
         self.node_outlet = config["N_OUTLET"]       # Indice do nó que está aberto para atmosfera (pressão nesse nó = OUTLET)
@@ -127,7 +127,7 @@ class Hydraulics():
 
         
 # Usando herança de classe, podemos modificar facilmente as funções que se relacionam aos problemas extras
-# e reutilizar da classe pai aquilo que é mantido
+# e reutilizar da classe pai aquilo que é mantido   
 
 class Hydraulics_p3(Hydraulics):
     def __init__(self, conec, Xno, config):
