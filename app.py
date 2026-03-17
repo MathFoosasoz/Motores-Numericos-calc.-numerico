@@ -1,5 +1,5 @@
 from env import CONFIG
-from hydraulics import Hydraulics, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
+from hydraulics import Hydraulics, Hydraulics_p2, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
 from data_structures import GeraGrafo
 
 def main():
@@ -11,6 +11,9 @@ def main():
 
     test = Hydraulics(conec, Xno, config)
     test.run(print_info = True, plot = True)
+
+    test_p2 = Hydraulics_p2(conec, Xno, config)
+    test_p2.run(print_info = True, plot = True)
   
     test_p3 = Hydraulics_p3(conec, Xno, config)
     test_p3.run(print_info = True, plot = False)

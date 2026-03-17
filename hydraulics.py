@@ -128,6 +128,43 @@ class Hydraulics():
         
 # Usando herança de classe, podemos modificar facilmente as funções que se relacionam aos problemas extras
 # e reutilizar da classe pai aquilo que é mantido   
+class Hydraulics_p2(Hydraulics):
+    def __init__(self, conec, Xno, config):
+        super().__init__(conec, Xno, config)
+        self.inlet_pressure = config["INLET_PRESSURE_DICT"] 
+
+    def solveNetwork(self):
+        A_tilde = self.Assembly()
+        num_nodes = A_tilde.shape[0]
+        b_vector = np.zeros(shape=(num_nodes))
+
+        b_vector[self.node_inlet] = self.inlet
+
+        for node, value in self.inlet_pressure.items():
+            node = int(node)
+            A_tilde[node, :] = 0            
+            A_tilde[node, node] = 1          
+            b_vector[node] = value
+        
+        pressures = np.linalg.solve(A_tilde, b_vector)
+        self.results['P'] = pressures
+
+        return pressures
+
+    def run(self, print_info, plot):
+        self.calculate_flow_rate_and_potency()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Solução das pressões em cada nó: {self.results['P']}")
+            print(f"Solução das vazões em cada cano: {self.results['Q']}")
+            print(f"Solução da potência dissipada pelo sistema: {self.results['W']}\n\n")
+            
+
+        if plot:
+            PlotaRede(self.conec, 1000*self.Xno, self.results['P'], self.results['Q'])
+            plt.show()
+
 
 class Hydraulics_p3(Hydraulics):
     def __init__(self, conec, Xno, config):
@@ -179,7 +216,7 @@ class Hydraulics_p3(Hydraulics):
             print(f"Solução das pressões em cada nó: {self.results['P']}")
             print(f"Solução das vazões em cada cano: {self.results['Q']}")
             print(f"Solução da potência dissipada pelo sistema: {self.results['W']}")
-            print(f"Vazão no ponto de inlet: {self.results["Q_inlet"]}\n\n")
+            print(f"Vazão no ponto de inlet: {self.results['Q_inlet']}\n\n")
             
 
         if plot:

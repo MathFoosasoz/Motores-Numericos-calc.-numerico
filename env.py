@@ -23,7 +23,7 @@ CONFIG = {
     "INLET_FLOW": 1.0e-7,    
     "INLET_PRESSURE": 100,
     "INLET_FLOW_DICT": {"0": 1.0e-7, "175": 1.0e-6},
-    "INLET_PRESSURE_DICT": {"0": 1.0e-7, "175": 1.0e-6},
+    "INLET_PRESSURE_DICT": {"5": 0.0, "215": 0.0},
     "INLET_FLOW_SIN_DICT": {"N_INLET": 0, "A": 0.1, "omega": 3, "theta": 0},
     "INLET_FLOW_COS_DICT": {"N_INLET": 175, "A": 0.01, "omega": 4, "theta": 0},
 
