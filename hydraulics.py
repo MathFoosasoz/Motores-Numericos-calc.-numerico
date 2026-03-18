@@ -2,22 +2,53 @@ import numpy as np
 from ploting import PlotaMaxPressao, PlotaRede
 import matplotlib.pyplot as plt
 
+# =============================================================================
+# EXERCÕCIO 1  M˙ltiplos pontos de injeÁ„o de vaz„o
+# =============================================================================
+#
+# MotivaÁ„o:
+#   Na classe base `Hydraulics`, o vetor b È populado com uma ˙nica vaz„o num
+#   ˙nico nÛ de entrada (N_INLET / INLET_FLOW).  Para o ExercÌcio 1 queremos
+#   generalizar isso: a entrada passa a ser um DICION¡RIO cujas chaves s„o os
+#   Ìndices dos nÛs e cujos valores s„o as respectivas vazıes impostas.
+#
+#   Exemplo de dicion·rio no CONFIG:
+#       INLET_FLOW_DICT = {"0": 1.0e-7, "175": 1.0e-6}
+#
+#   Isso permite simular redes com bombeamento em v·rios pontos
+#   simultaneamente, sem precisar alterar nada na montagem da matriz A.
+#
+# EstratÈgia matem·tica:
+#   O sistema linear continua sendo  A∑P = b.
+#   A ˙nica mudanÁa È a forma como b È construÌdo:
+#
+#       Para cada (nÛ_k, Q_k) em INLET_FLOW_DICT:
+#           b[nÛ_k] = Q_k          ê vaz„o imposta naquele nÛ
+#
+#   Depois, a condiÁ„o de press„o no outlet È aplicada normalmente:
+#       A[node_outlet, :]         = 0   ê zera a equaÁ„o de conservaÁ„o do nÛ
+#       A[node_outlet, node_outlet] = 1 ê substitui por  P[node_outlet] = OUTLET
+#       b[node_outlet]            = OUTLET
+#
+#   Por fim:  P = np.linalg.solve(A, b)
+# =============================================================================
+
 class Hydraulics():
     def __init__(self, conec, Xno, config):
         self.conec = conec
         self.Xno = Xno
 
-        self.num_nodes = np.max(conec) +1           # O n√∫mero de n√≥s pode ser recuperado a partir do maior n√≥ da conec
-        self.num_pipes = np.shape(conec)[0]         # O n√∫mero de canos pode ser recuperado a partir do n√∫mero de linhas da matriz C
+        self.num_nodes = np.max(conec) +1              # O n˙mero de nÛs pode ser recuperado a partir do maior nÛ da conec
+        self.num_pipes = np.shape(conec)[0]         # O n˙mero de canos pode ser recuperado a partir do n˙mero de linhas da matriz C
 
-        self.node_outlet = config["N_OUTLET"]       # Indice do n√≥ que est√° aberto para atmosfera (press√£o nesse n√≥ = OUTLET)
-        self.node_inlet = config["N_INLET"]         # Indice do n√≥ que est√° ligado √† bomba de fluido (vaz√£o nesse n√≥ = INLET)
-        self.inlet = config["INLET_FLOW"]           # Vaz√£o de entrada na rede
-        self.outlet = config["OUTLET"]              # Press√£o de sa√≠da da rede
-        self.pipe_area = config["PIPE_AREA"]        # √Årea da se√ß√£o transversal do cano
+        self.node_outlet = config["N_OUTLET"]       # Indice do nÛ que est· aberto para atmosfera (press„o nesse nÛ = OUTLET)
+        self.node_inlet = config["N_INLET"]         # Indice do nÛ que est· ligado ‡ bomba de fluido (vaz„o nesse nÛ = INLET)
+        self.inlet = config["INLET_FLOW"]           # Vaz„o de entrada na rede
+        self.outlet = config["OUTLET"]              # Press„o de saÌda da rede
+        self.pipe_area = config["PIPE_AREA"]        # ¡rea da seÁ„o transversal do cano
         self.viscosity = config["VISCOSITY"]        # Viscosidade do fluido
 
-        # P = press√µes, Q = Vaz√µes nos canos, W = Pot√™ncia dissipada
+        # P = pressıes, Q = Vazıes nos canos, W = PotÍncia dissipada
         self.results = {'P': None, 'Q': None, 'W': None} 
         
     def calculate_conductancy(self):
@@ -41,21 +72,21 @@ class Hydraulics():
             return C
 
     def Assembly(self):
-        self.calculate_conductancy() # Gera a matriz C de condut√¢ncias
+        self.calculate_conductancy() # Gera a matriz C de condut‚ncias
 
-        A = np.zeros(shape=(self.num_nodes,self.num_nodes)) # matriz quadrada de dimens√£o igual ao n√∫mero de n√≥s, preenchida totalmente com zeros
+        A = np.zeros(shape=(self.num_nodes,self.num_nodes)) # matriz quadrada de dimens„o igual ao n˙mero de nÛs, preenchida totalmente com zeros
 
         for index, conectivity in enumerate(self.C):
-            from_node = self.conec[index,0]     # n√≥ de saida
-            to_node = self.conec[index,1]       # n√≥ de chegada
+            from_node = self.conec[index,0]     # nÛ de saida
+            to_node = self.conec[index,1]       # nÛ de chegada
 
-            A[from_node, from_node] += conectivity #quando i == j, soma-se a conectividade na posi√ß√£o A[i,i]
-            A[to_node, to_node] += conectivity     #quando i == j, soma-se a conectividade na posi√ß√£o A[j,j]
+            A[from_node, from_node] += conectivity #quando i == j, soma-se a conectividade na posiÁ„o A[i,i]
+            A[to_node, to_node] += conectivity     #quando i == j, soma-se a conectividade na posiÁ„o A[j,j]
 
-            A[to_node, from_node] -= conectivity   #quando i != j, subtrai-se a conectividade na posi√ß√£o A[i, j]
-            A[from_node, to_node] -= conectivity   #quando i != j, subtrai-se a conectividade na posi√ß√£o A[j, i]
+            A[to_node, from_node] -= conectivity   #quando i != j, subtrai-se a conectividade na posiÁ„o A[i, j]
+            A[from_node, to_node] -= conectivity   #quando i != j, subtrai-se a conectividade na posiÁ„o A[j, i]
 
-            #se n√£o h√° conex√£o, a posi√ß√£o continua 0
+            #se n„o h· conex„o, a posiÁ„o continua 0
 
         return A
 
@@ -63,17 +94,17 @@ class Hydraulics():
         A_tilde = self.Assembly()                       # Gera a matriz A
 
         A_tilde[self.node_outlet, :] = 0                # A linha i == node_atm deve ser completamente zerada...
-        A_tilde[self.node_outlet, self.node_outlet] = 1 # menos na posi√ß√£o i == j == node_atm. Nessa posi√ß√£o deve ser colocado o valor 1    
+        A_tilde[self.node_outlet, self.node_outlet] = 1 # menos na posiÁ„o i == j == node_atm. Nessa posiÁ„o deve ser colocado o valor 1    
 
-        num_nodes = A_tilde.shape[0]                    # O n√∫mero de n√≥s pode ser recuperado a partir do n√∫mero de linhas da matriz A_tilde
+        num_nodes = A_tilde.shape[0]                    # O n˙mero de nÛs pode ser recuperado a partir do n˙mero de linhas da matriz A_tilde
 
-        b_vector = np.zeros(shape=(num_nodes))          # O vetor b √© uma linha da dimens√£o do n√∫mero de n√≥s, formado inteiramente de zeros menos...
-        b_vector[self.node_inlet] = self.inlet          # no indice onde h√° vaz√£o ...
-        b_vector[self.node_outlet] = self.outlet        # e no indice onde √© aberto pra press√£o externa (n_atm)
+        b_vector = np.zeros(shape=(num_nodes))          # O vetor b È uma linha da dimens„o do n˙mero de nÛs, formado inteiramente de zeros menos...
+        b_vector[self.node_inlet] = self.inlet          # no indice onde h· vaz„o ...
+        b_vector[self.node_outlet] = self.outlet        # e no indice onde È aberto pra press„o externa (n_atm)
 
-        pressures = np.linalg.solve(A_tilde, b_vector)  # Resolu√ß√£o do sistema A_tilde * pressures = b_vector
+        pressures = np.linalg.solve(A_tilde, b_vector)  # ResoluÁ„o do sistema A_tilde * pressures = b_vector
 
-        self.results['P'] = pressures                   # Coloca o resultado das press√µes no dicion√°rio de resultados
+        self.results['P'] = pressures                   # Coloca o resultado das pressıes no dicion·rio de resultados
 
         return pressures
 
@@ -81,17 +112,17 @@ class Hydraulics():
 
         pressures = self.solveNetwork()
 
-        # A matriz_K √© uma matriz diagonal, cujos valores matriz[i,i] s√£o as conectividades do vetor C[i], e o resto √© 0.
-        # A matriz_D √© uma matriz de dimens√£o (num_pipes X num_nodes) que relaciona de onde est√° indo...
-        # e vindo o fluido (1 se esta vindo, -1 se est√° indo, 0 se n√£o h√° conex√£o) entre os n√≥s ( ??? eu acho)
+        # A matriz_K È uma matriz diagonal, cujos valores matriz[i,i] s„o as conectividades do vetor C[i], e o resto È 0.
+        # A matriz_D È uma matriz de dimens„o (num_pipes X num_nodes) que relaciona de onde est· indo...
+        # e vindo o fluido (1 se esta vindo, -1 se est· indo, 0 se n„o h· conex„o) entre os nÛs ( ??? eu acho)
         matriz_K = np.zeros(shape=(self.num_pipes, self.num_pipes))   
         matriz_D = np.zeros(shape=(self.num_pipes, self.num_nodes))
 
         for k in range(self.num_pipes):
             matriz_K[k,k] = self.C[k]     
 
-            from_node = self.conec[k, 0]    # n√≥ de saida
-            to_node = self.conec[k, 1]      # n√≥ de chegada
+            from_node = self.conec[k, 0]    # nÛ de saida
+            to_node = self.conec[k, 1]      # nÛ de chegada
 
             for j in range(self.num_nodes):
                 if (j == from_node): 
@@ -100,7 +131,7 @@ class Hydraulics():
                 if (j == to_node):
                     matriz_D[k, j] = -1
 
-        # Multiplica√ß√£o de matrizes como est√° escrito na apostila     
+        # MultiplicaÁ„o de matrizes como est· escrito na apostila     
         Q = matriz_K @ matriz_D @ pressures 
         W =  pressures.T @ matriz_D.T @ Q
 
@@ -116,9 +147,9 @@ class Hydraulics():
 
         if print_info:
             print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Solu√ß√£o das press√µes em cada n√≥: {self.results['P']}")
-            print(f"Solu√ß√£o das vaz√µes em cada cano: {self.results['Q']}")
-            print(f"Solu√ß√£o da pot√™ncia dissipada pelo sistema: {self.results['W']}\n\n")
+            print(f"SoluÁ„o das pressıes em cada nÛ: {self.results['P']}")
+            print(f"SoluÁ„o das vazıes em cada cano: {self.results['Q']}")
+            print(f"SoluÁ„o da potÍncia dissipada pelo sistema: {self.results['W']}\n\n")
             
 
         if plot:
@@ -126,14 +157,14 @@ class Hydraulics():
             plt.show()
 
         
-# Usando heran√ßa de classe, podemos modificar facilmente as fun√ß√µes que se relacionam aos problemas extras
-# e reutilizar da classe pai aquilo que √© mantido   
+# Usando heranÁa de classe, podemos modificar facilmente as funÁıes que se relacionam aos problemas extras
+# e reutilizar da classe pai aquilo que È mantido
 
 class Hydraulics_p3(Hydraulics):
     def __init__(self, conec, Xno, config):
         super().__init__(conec, Xno, config)
 
-        self.inlet = config["INLET_PRESSURE"]    # Press√£o de entrada na rede
+        self.inlet = config["INLET_PRESSURE"]    # Press„o de entrada na rede
 
     def calculate_conductancy(self):
         return super().calculate_conductancy()
@@ -144,24 +175,24 @@ class Hydraulics_p3(Hydraulics):
     def solveNetwork(self):
         A_tilde = self.Assembly()
 
-        # Definindo as equa√ß√µes de controle
+        # Definindo as equaÁıes de controle
         A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
-        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posi√ß√£o i == j == node_outlet. Nessa posi√ß√£o deve ser colocado o valor 1
+        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posiÁ„o i == j == node_outlet. Nessa posiÁ„o deve ser colocado o valor 1
 
-        # Vamos usar essa linha da matriz A_tilde pra resolver qual a vaza√£o de entrada no final
+        # Vamos usar essa linha da matriz A_tilde pra resolver qual a vaza„o de entrada no final
         line_to_find_inlet_flow = np.array(A_tilde[self.node_inlet, :])
 
         A_tilde[self.node_inlet, :] = 0                       # A linha i == node_inlet deve ser completamente zerada...
-        A_tilde[self.node_inlet, self.node_inlet] = 1         # menos na posi√ß√£o i == j == node_inlet. Nessa posi√ß√£o deve ser colocado o valor 1
+        A_tilde[self.node_inlet, self.node_inlet] = 1         # menos na posiÁ„o i == j == node_inlet. Nessa posiÁ„o deve ser colocado o valor 1
     
         b_vector = np.zeros(shape = (self.num_nodes))
         b_vector[self.node_inlet] = self.inlet
         b_vector[self.node_outlet] = self.outlet 
         
-        pressures = np.linalg.solve(A_tilde, b_vector)        # Solu√ß√£o do sistema A_tilde * pressures = b_vector
+        pressures = np.linalg.solve(A_tilde, b_vector)        # SoluÁ„o do sistema A_tilde * pressures = b_vector
         self.results['P'] = pressures                    
 
-        # Resolu√ß√£o da vaz√£o de entrada
+        # ResoluÁ„o da vaz„o de entrada
         inlet_flow = np.dot(line_to_find_inlet_flow, pressures)
         self.results["Q_inlet"] = inlet_flow
 
@@ -176,10 +207,10 @@ class Hydraulics_p3(Hydraulics):
 
         if print_info:
             print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Solu√ß√£o das press√µes em cada n√≥: {self.results['P']}")
-            print(f"Solu√ß√£o das vaz√µes em cada cano: {self.results['Q']}")
-            print(f"Solu√ß√£o da pot√™ncia dissipada pelo sistema: {self.results['W']}")
-            print(f"Vaz√£o no ponto de inlet: {self.results["Q_inlet"]}\n\n")
+            print(f"SoluÁ„o das pressıes em cada nÛ: {self.results['P']}")
+            print(f"SoluÁ„o das vazıes em cada cano: {self.results['Q']}")
+            print(f"SoluÁ„o da potÍncia dissipada pelo sistema: {self.results['W']}")
+            print(f"Vaz„o no ponto de inlet: {self.results["Q_inlet"]}\n\n")
             
 
         if plot:
@@ -201,7 +232,7 @@ class Hydraulics_p4(Hydraulics):
         A_tilde = self.Assembly()
 
         A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
-        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posi√ß√£o i == j == node_outlet. Nessa posi√ß√£o deve ser colocado o valor 1
+        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posiÁ„o i == j == node_outlet. Nessa posiÁ„o deve ser colocado o valor 1
 
         mL_to_m3 = 0.000001
 
@@ -211,8 +242,8 @@ class Hydraulics_p4(Hydraulics):
         b_vector = np.zeros(shape = (self.num_nodes))
                  
         # Primeiro vamos resolver apenas para as constante A que multiplica o seno, e depois...
-        # na fun√ß√£o de achar as m√°ximas press√µes vamos multiplicar os resultados por ...
-        # f(t) = sen(t*omega + theta) para cada tempo da an√°lise.
+        # na funÁ„o de achar as m·ximas pressıes vamos multiplicar os resultados por ...
+        # f(t) = sen(t*omega + theta) para cada tempo da an·lise.
         # Esse procedimento pode ser realisado por causa da linearidade
         b_vector[node_entry] = amp * mL_to_m3
         pressures = np.linalg.solve(A_tilde, b_vector)
@@ -233,7 +264,7 @@ class Hydraulics_p4(Hydraulics):
         time = np.linspace(time_start, time_end, increments)
         max_pressures = []
 
-        # Para cada tempo, n√≥s multiplicamos o sen(t*omega + theta) pela solu√ß√£o da solve_network para encontrar as press√µes reais
+        # Para cada tempo, nÛs multiplicamos o sen(t*omega + theta) pela soluÁ„o da solve_network para encontrar as pressıes reais
         for t in time:
             pressures_in_t = pressures_without_sin * np.sin(t*omega + theta)
             max_pressures.append(pressures_in_t.max())
@@ -250,7 +281,7 @@ class Hydraulics_p4(Hydraulics):
 
         if print_info:
             print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Press√µes ao longo do tempo: {max_pressures}\n\n")
+            print(f"Pressıes ao longo do tempo: {max_pressures}\n\n")
 
         if plot:
             PlotaMaxPressao(max_pressures, self.time)
@@ -274,9 +305,9 @@ class Hydraulics_p5(Hydraulics):
     def solveNetwork(self):
         A_tilde = self.Assembly()
 
-        # Definindo as equa√ß√µes de controle
+        # Definindo as equaÁıes de controle
         A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
-        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posi√ß√£o i == j == node_outlet. Nessa posi√ß√£o deve ser colocado o valor 1
+        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posiÁ„o i == j == node_outlet. Nessa posiÁ„o deve ser colocado o valor 1
         
         mL_to_m3 = 0.000001
 
@@ -325,9 +356,108 @@ class Hydraulics_p5(Hydraulics):
 
         if print_info:
             print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Press√µes ao longo do tempo: {max_pressures}\n\n")
+            print(f"Pressıes ao longo do tempo: {max_pressures}\n\n")
 
         if plot:
             PlotaMaxPressao(max_pressures, self.time)
             plt.show()
-    
+
+
+# =============================================================================
+# ExercÌcio 1  Classe com m˙ltiplos pontos de injeÁ„o de vaz„o
+# =============================================================================
+
+class Hydraulics_ex1(Hydraulics):
+    """
+    Extens„o da classe Hydraulics para o ExercÌcio 1.
+
+    Generaliza a condiÁ„o de entrada: em vez de um ˙nico nÛ de injeÁ„o
+    (N_INLET / INLET_FLOW), recebe um dicion·rio com v·rios nÛs e suas
+    respectivas vazıes impostas.
+
+    Par‚metro adicional no CONFIG:
+        INLET_FLOW_DICT : dict
+            Chaves   í Ìndice do nÛ (str ou int)
+            Valores  í vaz„o imposta naquele nÛ [m≥/s] (float)
+
+            Exemplo:
+                {"0": 1.0e-7, "175": 1.0e-6}
+
+    Tudo o mais (c·lculo de condut‚ncias, montagem de A, c·lculo de Q e W)
+    È herdado diretamente de Hydraulics sem nenhuma alteraÁ„o.
+    """
+
+    def __init__(self, conec, Xno, config):
+        super().__init__(conec, Xno, config)
+
+        # Substitui a entrada ˙nica pelo dicion·rio de m˙ltiplas entradas.
+        # As chaves do dicion·rio podem vir como strings (JSON); convertemos
+        # para int para usar como Ìndices do vetor b.
+        raw_dict = config["INLET_FLOW_DICT"]
+        self.inlet_flow_dict = {int(node): float(flow)
+                                for node, flow in raw_dict.items()}
+
+    # -------------------------------------------------------------------------
+    # solveNetwork  ˙nica funÁ„o modificada em relaÁ„o ‡ classe pai
+    # -------------------------------------------------------------------------
+    def solveNetwork(self):
+        """
+        Resolve o sistema linear  A∑P = b  com m˙ltiplos pontos de injeÁ„o.
+
+        DiferenÁa em relaÁ„o a Hydraulics.solveNetwork():
+            " O vetor b n„o recebe apenas b[N_INLET] = INLET_FLOW.
+            " Em vez disso, percorremos self.inlet_flow_dict e fazemos:
+                  for node, flow in self.inlet_flow_dict.items():
+                      b[node] = flow
+            " O restante (condiÁ„o de outlet, resoluÁ„o do sistema) È idÍntico.
+        """
+
+        # --- Passo 1: monta a matriz de condut‚ncias A ---
+        A_tilde = self.Assembly()
+
+        # --- Passo 2: impıe condiÁ„o de press„o no outlet ---
+        # Zera toda a linha do nÛ de saÌda e coloca 1 na diagonal.
+        # Isso substitui a equaÁ„o de conservaÁ„o desse nÛ pela equaÁ„o:
+        #     P[node_outlet] = OUTLET
+        A_tilde[self.node_outlet, :]                    = 0
+        A_tilde[self.node_outlet, self.node_outlet]     = 1
+
+        # --- Passo 3: inicializa o vetor b com zeros ---
+        # Dimens„o: um elemento por nÛ da rede.
+        b_vector = np.zeros(shape=(self.num_nodes,))
+
+        # --- Passo 4: popula as vazıes a partir do dicion·rio ---
+        # Para cada par (nÛ, vaz„o) no dicion·rio de entradas,
+        # atribuÌmos a vaz„o ‡ posiÁ„o correspondente no vetor b.
+        # NÛs com vaz„o n„o especificada continuam com b[nÛ] = 0
+        # (conservaÁ„o de massa sem fonte/sumidouro).
+        for node, flow in self.inlet_flow_dict.items():
+            b_vector[node] = flow
+
+        # --- Passo 5: impıe a press„o no outlet ---
+        # Sobrescreve a posiÁ„o do outlet com o valor de press„o imposto.
+        # (Feito apÛs o loop para garantir que o outlet n„o seja sobrescrito
+        # acidentalmente caso ele tambÈm apareÁa em inlet_flow_dict.)
+        b_vector[self.node_outlet] = self.outlet
+
+        # --- Passo 6: resolve o sistema linear A∑P = b ---
+        pressures = np.linalg.solve(A_tilde, b_vector)
+
+        # Armazena e retorna
+        self.results['P'] = pressures
+        return pressures
+
+    def run(self, print_info, plot):
+        self.calculate_flow_rate_and_potency()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"NÛs de injeÁ„o (INLET_FLOW_DICT): {self.inlet_flow_dict}")
+            print(f"SoluÁ„o das pressıes em cada nÛ:  {self.results['P']}")
+            print(f"SoluÁ„o das vazıes em cada cano:  {self.results['Q']}")
+            print(f"PotÍncia dissipada pelo sistema:  {self.results['W']}\n\n")
+
+        if plot:
+            PlotaRede(self.conec, 1000 * self.Xno,
+                      self.results['P'], self.results['Q'])
+            plt.show()

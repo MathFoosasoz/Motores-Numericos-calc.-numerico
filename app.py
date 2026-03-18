@@ -1,5 +1,5 @@
 from env import CONFIG
-from hydraulics import Hydraulics, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
+from hydraulics import Hydraulics, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5, Hydraulics_ex1
 from data_structures import GeraGrafo
 
 def main():
@@ -20,7 +20,15 @@ def main():
 
     test_p5 = Hydraulics_p5(conec, Xno, config)
     test_p5.run(print_info = True, plot = True)
-    
+
+    # -----------------------------------------------------------------------
+    # Exercício 1  múltiplos pontos de injeção via INLET_FLOW_DICT
+    # O CONFIG já possui a chave INLET_FLOW_DICT com dois nós de entrada.
+    # Basta instanciar Hydraulics_ex1 passando o mesmo config.
+    # -----------------------------------------------------------------------
+    test_ex1 = Hydraulics_ex1(conec, Xno, config)
+    test_ex1.run(print_info = True, plot = True)
+
 
 if __name__ == "__main__":
     main()
