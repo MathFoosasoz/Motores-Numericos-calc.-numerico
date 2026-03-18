@@ -1,25 +1,26 @@
 from env import CONFIG
 from hydraulics import Hydraulics, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
-from data_structures import GeraGrafo
+from data_structures import GeraGrafo, conec_filter, show_conec_issues
 
 def main():
     config = CONFIG
 
-    Xno, conec = GeraGrafo(levels=3)
+    Xno, conec = GeraGrafo(levels=4)
+    filtered_conec = conec_filter(conec)
     mm_to_m = 0.001
     Xno = Xno * mm_to_m
 
-    test = Hydraulics(conec, Xno, config)
-    test.run(print_info = True, plot = True)
+    #test = Hydraulics(filtered_conec, Xno, config)
+    #test.run(print_info = True, plot = True)
   
-    test_p3 = Hydraulics_p3(conec, Xno, config)
-    test_p3.run(print_info = True, plot = False)
+    #test_p3 = Hydraulics_p3(filtered_conec, Xno, config)
+    #test_p3.run(print_info = True, plot = False)
 
-    test_p4 = Hydraulics_p4(conec, Xno, config)
-    test_p4.run(print_info = True, plot = True)
+    #test_p4 = Hydraulics_p4(filtered_conec, Xno, config)
+    #test_p4.run(print_info = True, plot = True)
 
-    test_p5 = Hydraulics_p5(conec, Xno, config)
-    test_p5.run(print_info = True, plot = True)
+    #test_p5 = Hydraulics_p5(filtered_conec, Xno, config)
+    #test_p5.run(print_info = True, plot = True)
     
 
 if __name__ == "__main__":

@@ -88,3 +88,42 @@ def GeraGrafo(levels=3):
         final_edges_list.append([id_start, id_end])
 
     return np.array(final_nodes_list), np.array(final_edges_list)
+
+def conec_filter(conec):
+    clean_conec = []
+
+    for index, connection in enumerate(conec):
+        if connection[0] != connection[1]:
+            clean_conec.append([connection[0], connection[1]])
+            
+    clean_conec_np = np.array(clean_conec)
+
+    for index, connection in enumerate(clean_conec_np):
+        if connection[0] == connection[1]:
+            print(f"NA MATRIZ LIMPA: index: {index}! Nó de saída é igual ao nó de chegada!")
+
+    return clean_conec_np
+
+def show_conec_issues(conec):
+
+    print(f"[{conec[0]}")
+    print(f" {conec[1]}")
+    print(f" {conec[2]}")
+    print(f" ...  \n")
+
+    for index, connection in enumerate(conec):
+        if connection[0] == connection[1]:
+            print(f" ...  ")
+            print(f"{conec[index - 2]}")
+            print(f"{conec[index - 1]}")
+            print(f"{conec[index]}")
+            print(f"{conec[index + 1]}")
+            print(f"{conec[index + 2]}")
+            print(f" ...  \n")
+
+    print(f" ...  ")
+    print(f"[{conec[-3]}")
+    print(f" {conec[-2]}")
+    print(f" {conec[-1]}]")
+            
+
