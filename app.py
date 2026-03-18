@@ -6,7 +6,6 @@ def main():
     config = CONFIG
 
     Xno, conec = GeraGrafo(levels=4)
-    filtered_conec = conec_filter(conec)
     mm_to_m = 0.001
     Xno = Xno * mm_to_m
 
