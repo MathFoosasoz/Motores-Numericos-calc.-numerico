@@ -1,6 +1,6 @@
 from env import CONFIG
-from hydraulics import Hydraulics, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
-from data_structures import GeraGrafo, conec_filter, show_conec_issues
+from hydraulics import Hydraulics, Hydraulics_p2, Hydraulics_p3, Hydraulics_p4, Hydraulics_p5
+from data_structures import GeraGrafo
 
 def main():
     config = CONFIG
@@ -9,8 +9,11 @@ def main():
     mm_to_m = 0.001
     Xno = Xno * mm_to_m
 
-    #test = Hydraulics(filtered_conec, Xno, config)
-    #test.run(print_info = True, plot = True)
+    test = Hydraulics(conec, Xno, config)
+    test.run(print_info = True, plot = True)
+
+    test_p2 = Hydraulics_p2(conec, Xno, config)
+    test_p2.run(print_info = True, plot = True)
   
     #test_p3 = Hydraulics_p3(filtered_conec, Xno, config)
     #test_p3.run(print_info = True, plot = False)
