@@ -1,0 +1,30 @@
+# =============================================================================
+# EXERCÍCIO 1  MÚltiplos pontos de injeção de vazâo
+# =============================================================================
+#
+# Motivação:
+#   Na classe base `Hydraulics`, o vetor b é populado com uma única vazão num
+#   único nó de entrada (N_INLET / INLET_FLOW).  Para o Exercício 1 queremos
+#   generalizar isso: a entrada passa a ser um DICIONÁRIO cujas chaves são os
+#   índices dos nós e cujos valores são as respectivas vazões impostas.
+#
+#   Exemplo de dicionário no CONFIG:
+#       INLET_FLOW_DICT = {"0": 1.0e-7, "175": 1.0e-6}
+#
+#   Isso permite simular redes com bombeamento em v�rios pontos
+#   simultaneamente, sem precisar alterar nada na montagem da matriz A.
+#
+# Estratégia matemática:
+#   O sistema linear continua sendo  A*P = b.
+#   A única mudançaa é a forma como b é construído:
+#
+#       Para cada (nó_k, Q_k) em INLET_FLOW_DICT:
+#           b[nó_k] = Q_k           # vazão imposta naquele nó
+#
+#   Depois, a condição de pressão no outlet é aplicada normalmente:
+#       A[node_outlet, :]         = 0     # zera a equação de conservação do nó
+#       A[node_outlet, node_outlet] = 1   # substitui por  P[node_outlet] = OUTLET
+#       b[node_outlet]            = OUTLET
+#
+#   Por fim:  P = np.linalg.solve(A, b)
+# =============================================================================
