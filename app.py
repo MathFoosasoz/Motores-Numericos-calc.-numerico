@@ -21,9 +21,17 @@ def main():
     #test_p4 = Hydraulics_p4(filtered_conec, Xno, config)
     #test_p4.run(print_info = True, plot = True)
 
-    #test_p5 = Hydraulics_p5(filtered_conec, Xno, config)
-    #test_p5.run(print_info = True, plot = True)
-    
+    test_p5 = Hydraulics_p5(conec, Xno, config)
+    test_p5.run(print_info = True, plot = True)
+
+    # -----------------------------------------------------------------------
+    # Exerc�cio 1  m�ltiplos pontos de inje��o via INLET_FLOW_DICT
+    # O CONFIG j� possui a chave INLET_FLOW_DICT com dois n�s de entrada.
+    # Basta instanciar Hydraulics_ex1 passando o mesmo config.
+    # -----------------------------------------------------------------------
+    test_ex1 = Hydraulics_ex1(conec, Xno, config)
+    test_ex1.run(print_info = True, plot = True)
+
 
 if __name__ == "__main__":
     main()
