@@ -22,11 +22,14 @@ def main():
     # test_p3 = Hydraulics_p3(conec, Xno, config)
     # test_p3.run(print_info = True, plot = False)
 
-    test_p4 = Hydraulics_p4(conec, Xno, config)
-    test_p4.run(print_info = True, plot = True)
+    # test_p4 = Hydraulics_p4(conec, Xno, config)
+    # test_p4.run(print_info = True, plot = True)
 
     # test_p5 = Hydraulics_p5(conec, Xno, config)
     # test_p5.run(print_info = True, plot = True)
+
+    test_p6 = Hydraulics_p6(conec, Xno, config)
+    test_p6.run(print_info = True, plot = True)
 
 
 if __name__ == "__main__":
