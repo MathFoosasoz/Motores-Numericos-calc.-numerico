@@ -444,6 +444,58 @@ class Hydraulics_p5(Hydraulics):
             plt.show()
 
 
+class Hydraulics_p6(Hydraulics):
+    def __init__(self, conec, Xno, config):
+        super().__init__(conec, Xno, config)
+        self.time = config["TIME_ANALYSIS"]
+        
+    def temperature(self, t):
+        # T(t) = 20 + 0.9 * t^2
+        return 20 + 0.9 * (t ** 2)
+        
+    def viscosity_t(self, T):
+        # mu(T) = 0.001791 / (1 + 0.03368*T + 0.000221*T^2)
+        return 0.001791 / (1 + 0.03368 * T + 0.000221 * (T ** 2))
+        
+    def find_max_pressures_over_time(self):
+        # Resolvemos o sistema uma vez para a viscosidade de referência
+        # (self.viscosity) e vazão de entrada (self.inlet).
+        base_pressures = self.solveNetwork()
+        
+        time_start = self.time[0]
+        time_end = self.time[1]
+        increments = self.time[2]
+        
+        time_array = np.linspace(time_start, time_end, increments)
+        max_pressures = []
+        
+        # Aproveitamos a linearidade do sistema
+        for t in time_array:
+            T = self.temperature(t)
+            mu_atual = self.viscosity_t(T)
+            
+            # O fator de escala é a razão entre a viscosidade atual e a viscosidade base usada no solveNetwork
+            fator_escala = mu_atual / self.viscosity
+            
+            pressures_in_t = base_pressures * fator_escala
+            
+            max_pressures.append(pressures_in_t.max())
+            
+        return np.array(max_pressures)
+
+    def run(self, print_info, plot):
+        max_pressures = self.find_max_pressures_over_time()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Pressão máxima inicial (t=0): {max_pressures[0]:.2f} Pa")
+            print(f"Pressão máxima final (t=10): {max_pressures[-1]:.2f} Pa\n\n")
+
+        if plot:
+            PlotaMaxPressao(max_pressures, self.time)
+            plt.show()
+
+
 def complexity_analysis(HydraulicClass: Hydraulics, print_info, plot):
     levels_list = [1, 2, 3, 4]   #os levels que foram pedidos no arquivo do professor
 
