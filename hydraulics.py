@@ -1,6 +1,7 @@
 import numpy as np
-from ploting import PlotaMaxPressao, PlotaRede
+from plotting import PlotaMaxPressao, PlotaRede
 import matplotlib.pyplot as plt
+from data_structures import GeraGrafo
 
 import time
 
@@ -43,7 +44,7 @@ class Hydraulics():
             self.C = C
             return C
 
-    def Assembly(self):
+    def assembly(self):
         self.calculate_conductancy() # Gera a matriz C de condutâncias
 
         A = np.zeros(shape=(self.num_nodes,self.num_nodes)) # matriz quadrada de dimensão igual ao número de nós, preenchida totalmente com zeros
@@ -62,8 +63,8 @@ class Hydraulics():
 
         return A
 
-    def solveNetwork(self):
-        A_tilde = self.Assembly()                       # Gera a matriz A
+    def solve_network(self):
+        A_tilde = self.assembly()                       # Gera a matriz A
 
         A_tilde[self.node_outlet, :] = 0                # A linha i == node_atm deve ser completamente zerada...
         A_tilde[self.node_outlet, self.node_outlet] = 1 # menos na posição i == j == node_atm. Nessa posição deve ser colocado o valor 1    
@@ -82,7 +83,7 @@ class Hydraulics():
 
     def calculate_flow_rate_and_potency(self):
 
-        pressures = self.solveNetwork()
+        pressures = self.solve_network()
 
         matriz_K = np.zeros(shape=(self.num_pipes, self.num_pipes))   
         matriz_D = np.zeros(shape=(self.num_pipes, self.num_nodes))
@@ -132,7 +133,7 @@ class Hydraulics_p1(Hydraulics):
     """
     Extensão da classe Hydraulics para o Exercício 1.
 
-    Generaliza a condiçãoo de entrada: em vez de um único nó de injeção
+    Generaliza a condição de entrada: em vez de um único nó de injeção
     (N_INLET e INLET_FLOW), recebe um dicionário com vários nós e suas
     respectivas vazões impostas.
 
@@ -146,10 +147,10 @@ class Hydraulics_p1(Hydraulics):
         self.inlet_flow_dict = {int(node): float(flow)
                                 for node, flow in raw_dict.items()}
 
-    def solveNetwork(self):
+    def solve_network(self):
 
         # Monta a matriz de condutâncias A
-        A_tilde = self.Assembly()
+        A_tilde = self.assembly()
 
         # Impõe condiçãoo de pressão no outlet
         A_tilde[self.node_outlet, :] = 0
@@ -194,8 +195,8 @@ class Hydraulics_p2(Hydraulics):
         super().__init__(conec, Xno, config)
         self.inlet_pressure = config["INLET_PRESSURE_DICT"] 
 
-    def solveNetwork(self):
-        A_tilde = self.Assembly()
+    def solve_network(self):
+        A_tilde = self.assembly()
         num_nodes = A_tilde.shape[0]
         b_vector = np.zeros(shape=(num_nodes))
 
@@ -233,20 +234,14 @@ class Hydraulics_p3(Hydraulics):
 
         self.inlet = config["INLET_PRESSURE"]    # pressão de entrada na rede
 
-    def calculate_conductancy(self):
-        return super().calculate_conductancy()
-    
-    def Assembly(self):
-        return super().Assembly()
+    def solve_network(self):
+        A_tilde = self.assembly()
 
-    def solveNetwork(self):
-        A_tilde = self.Assembly()
-
-        # Definindo as equa��es de controle
+        # Definindo as equações de controle
         A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
         A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_outlet. Nessa posição deve ser colocado o valor 1
 
-        # Vamos usar essa linha da matriz A_tilde pra resolver qual a vaza�o de entrada no final
+        # Vamos usar essa linha da matriz A_tilde pra resolver qual a vazão de entrada no final
         line_to_find_inlet_flow = np.array(A_tilde[self.node_inlet, :])
 
         A_tilde[self.node_inlet, :] = 0                       # A linha i == node_inlet deve ser completamente zerada...
@@ -264,9 +259,6 @@ class Hydraulics_p3(Hydraulics):
         self.results["Q_inlet"] = inlet_flow
 
         return pressures
-    
-    def calculate_flow_rate_and_potency(self):
-        return super().calculate_flow_rate_and_potency()
     
     def run(self, print_info, plot):
         
@@ -292,33 +284,31 @@ class Hydraulics_p4(Hydraulics):
         self.inlet = config["INLET_FLOW_SIN_DICT"] 
         self.time = config["TIME_ANALYSIS"]
 
-    def Assembly(self):
-        return super().Assembly()
+    def solve_network(self):
+        A_tilde = self.assembly()
 
-    def solveNetwork(self):
-        A_tilde = self.Assembly()
+        mL_to_m3 = 0.000001
 
-        A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
-        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_outlet. Nessa posição deve ser colocado o valor 1
+        A_tilde[self.node_outlet, :] = 0                      
+        A_tilde[self.node_outlet, self.node_outlet] = 1       
 
         node_entry = self.inlet["N_INLET"]
 
-        b_vector = np.zeros(shape = (self.num_nodes))
+        b_vector_sin = np.zeros(shape = (self.num_nodes))
+        b_vector_sin[self.node_outlet] = self.outlet
+
+        b_vector_sin_const = np.zeros(shape = (self.num_nodes))
                  
-        # Primeiro vamos resolver apenas para o valor 1, e depois...
-        # na função de achar as máximas pressões vamos multiplicar os resultados por ...
-        # f(t) = A*sen(t*omega + theta) + B para cada tempo da análise.
-        # Esse procedimento pode ser realisado por causa da linearidade
-        b_vector[node_entry] = 1
-        pressures = np.linalg.solve(A_tilde, b_vector)
-                
-        return pressures
+        b_vector_sin[node_entry] = 1 * mL_to_m3
+        b_vector_sin_const[node_entry] = self.inlet["B"] * mL_to_m3
+
+        pressures_sin = np.linalg.solve(A_tilde, b_vector_sin)
+        pressures_sin_const = np.linalg.solve(A_tilde, b_vector_sin_const)
+        
+        return pressures_sin, pressures_sin_const
     
     def find_max_pressures_over_time(self):
-        # Primeiro pegamos os resultados sem o seno
-        pressures_without_sin = self.solveNetwork()
-
-        mL_to_m3 = 0.000001
+        pressures_sin, pressures_sin_const = self.solve_network()
 
         time_start = self.time[0]
         time_end = self.time[1]
@@ -327,23 +317,18 @@ class Hydraulics_p4(Hydraulics):
         time = np.linspace(time_start, time_end, increments)
         max_pressures = []
 
-        # Para cada tempo, nós multiplicamos o (A*sen(t*omega + theta) + B) pela solução da solve_network para encontrar as pressões reais
         for t in time:
-            pressures_in_t = pressures_without_sin * self.sin_of_t(t) * mL_to_m3
+            pressures_in_t = pressures_sin * self.sin_of_t(t) + pressures_sin_const
             max_pressures.append(pressures_in_t.max())
 
         return np.array(max_pressures)
     
     def sin_of_t(self, t):
         A = self.inlet["A"]
-        B = self.inlet["B"]
         theta = np.radians(self.inlet["theta"])
         omega = self.inlet['omega']
 
-        return (A*np.sin(t*omega + theta) + B)
-
-    def calculate_conductancy(self):
-        return super().calculate_conductancy()
+        return (A*np.sin(t*omega + theta))
     
     def run(self, print_info, plot):
         
@@ -369,33 +354,43 @@ class Hydraulics_p5(Hydraulics):
     def calculate_conductancy(self):
         return super().calculate_conductancy()
     
-    def Assembly(self):
-        return super().Assembly()
+    def assembly(self):
+        return super().assembly()
 
-    def solveNetwork(self):
-        A_tilde = self.Assembly()
+    def solve_network(self):
+        A_tilde = self.assembly()
 
-        # Definindo as equa��es de controle
-        A_tilde[self.node_outlet, :] = 0                      # A linha i == node_outlet deve ser completamente zerada...
-        A_tilde[self.node_outlet, self.node_outlet] = 1       # menos na posição i == j == node_outlet. Nessa posição deve ser colocado o valor 1
-        
         mL_to_m3 = 0.000001
 
+        A_tilde[self.node_outlet, :] = 0                      
+        A_tilde[self.node_outlet, self.node_outlet] = 1  
+        
         node_entry_sin = self.inlet[0]["N_INLET"]
         node_entry_cos = self.inlet[1]["N_INLET"]
 
         b_vector_sin = np.zeros(shape = (self.num_nodes))
+        b_vector_sin[self.node_outlet] = self.outlet
+        b_vector_sin_const = np.zeros(shape = (self.num_nodes))
+
         b_vector_cos = np.zeros(shape = (self.num_nodes))
-        b_vector_sin[node_entry_sin] = 1
-        b_vector_cos[node_entry_cos] = 1
-        
-        pressures_sin = np.linalg.solve(A_tilde, b_vector_sin)
-        pressures_cos = np.linalg.solve(A_tilde, b_vector_cos)
+        b_vector_cos_const = np.zeros(shape = (self.num_nodes))
                  
-        return pressures_sin, pressures_cos
+        b_vector_sin[node_entry_sin] = 1 * mL_to_m3
+        b_vector_sin_const[node_entry_sin] = self.inlet[0]["B"] * mL_to_m3
+
+        b_vector_cos[node_entry_cos] = 1 * mL_to_m3
+        b_vector_cos_const[node_entry_cos] = self.inlet[1]["B"] * mL_to_m3
+
+        pressures_sin = np.linalg.solve(A_tilde, b_vector_sin)
+        pressures_sin_const = np.linalg.solve(A_tilde, b_vector_sin_const)
+
+        pressures_cos = np.linalg.solve(A_tilde, b_vector_cos)
+        pressures_cos_const = np.linalg.solve(A_tilde, b_vector_cos_const)
+        
+        return pressures_sin, pressures_sin_const, pressures_cos, pressures_cos_const
     
     def find_max_pressures_over_time(self):
-        pressures_without_sin, pressures_without_cos = self.solveNetwork()
+        pressures_sin, pressures_sin_const, pressures_cos, pressures_cos_const = self.solve_network()
 
         time_start = self.time[0]
         time_end = self.time[1]
@@ -404,31 +399,26 @@ class Hydraulics_p5(Hydraulics):
         time = np.linspace(time_start, time_end, num = increments)
         max_pressures = []
 
-        mL_to_m3 = 0.000001
-
         for t in time:
-            pressures_in_t = pressures_without_sin * self.sin_of_t(t) + pressures_without_cos * self.cos_of_t(t)
-            pressures_in_t = pressures_in_t * mL_to_m3
+            pressures_in_t = pressures_sin * self.sin_of_t(t) + pressures_sin_const + pressures_cos * self.cos_of_t(t) +pressures_cos_const
             max_pressures.append(pressures_in_t.max())
 
         return np.array(max_pressures)
 
     def sin_of_t(self, t):
         A = self.inlet[0]["A"]
-        B = self.inlet[0]["B"]
         theta = np.radians(self.inlet[0]["theta"])
         omega = self.inlet[0]['omega']
 
-        return (A*np.sin(t*omega + theta) + B)
+        return (A*np.sin(t*omega + theta))
     
 
     def cos_of_t(self, t):
         A = self.inlet[1]["A"]
-        B = self.inlet[1]["B"]
         theta = np.radians(self.inlet[1]["theta"])
         omega = self.inlet[1]['omega']
 
-        return (A*np.cos(t*omega + theta) + B)
+        return (A*np.cos(t*omega + theta))
 
 
     def run(self, print_info, plot):
@@ -460,7 +450,7 @@ class Hydraulics_p6(Hydraulics):
     def find_max_pressures_over_time(self):
         # Resolvemos o sistema uma vez para a viscosidade de referência
         # (self.viscosity) e vazão de entrada (self.inlet).
-        base_pressures = self.solveNetwork()
+        base_pressures = self.solve_network()
         
         time_start = self.time[0]
         time_end = self.time[1]
@@ -474,7 +464,7 @@ class Hydraulics_p6(Hydraulics):
             T = self.temperature(t)
             mu_atual = self.viscosity_t(T)
             
-            # O fator de escala é a razão entre a viscosidade atual e a viscosidade base usada no solveNetwork
+            # O fator de escala é a razão entre a viscosidade atual e a viscosidade base usada no solve_network
             fator_escala = mu_atual / self.viscosity
             
             pressures_in_t = base_pressures * fator_escala
@@ -497,33 +487,41 @@ class Hydraulics_p6(Hydraulics):
 
 
 def complexity_analysis(HydraulicClass: Hydraulics, print_info, plot):
-    levels_list = [1, 2, 3, 4]   #os levels que foram pedidos no arquivo do professor
-
+    levels_list = [1, 2, 3, 4]   # os levels de análise
     results = []
 
     for level in levels_list:
-        tempos_assembly = []    #tempo de montagem da matriz
-        tempos_solve = []       #tempo de resolucao  
-        
+        tempos_assembly = []    # tempo de montagem da matriz
+        tempos_solve = []       # tempo de resolucao  
+
+        Xno, conec = GeraGrafo(levels=level)
+        mm_to_m = 0.001
+        Xno = Xno * mm_to_m
+
+        HydraulicClass.conec = conec
+        HydraulicClass.Xno = Xno
+
         for _ in range(10):  # repete 10 vezes - pra diminuir o erro e tirar uma media depois            
-            #medindo tempo de montagem da matriz
+            # medindo tempo de montagem da matriz
             start = time.time()
-            HydraulicClass.Assembly()
+            HydraulicClass.assembly()
             tempos_assembly.append(time.time() - start)
             
-            #medindo tempo de resolucao do sistema linear
+            # medindo tempo de resolucao do sistema linear
             start = time.time()
-            HydraulicClass.solveNetwork()
+            HydraulicClass.solve_network()
             tempos_solve.append(time.time() - start)
         
-        #pra mostrar o resultado
+        # Resultados
         results.append({
-            "level": level,                              #nivel
-            "nodes": HydraulicClass.num_nodes,           #nro de nos    
-            "assembly_time": np.mean(tempos_assembly),   #tempo medio de montagem da matriz
-            "solve_time": np.mean(tempos_solve)          #tempo medio de resolucao do sistema
+            "level": level,                              # nivel
+            "nodes": HydraulicClass.num_nodes,           # nro de nos    
+            "assembly_time": np.mean(tempos_assembly),   # tempo medio de montagem da matriz
+            "solve_time": np.mean(tempos_solve)          # tempo medio de resolucao do sistema
         })
         #np.mean e usado pra calcular a media entre as 10 repeticoes
+
+        print(level)
 
     if print_info:
         print(f"\nRESULTADOS COMPLEXIDADE DA CLASSE {HydraulicClass.__class__.__name__}:\n")
@@ -561,5 +559,7 @@ def complexity_analysis(HydraulicClass: Hydraulics, print_info, plot):
         tabela.auto_set_font_size(False)
         tabela.set_fontsize(10)
         tabela.scale(1.2, 1.8)
+
+        plt.title(f'Resultados para classe: {HydraulicClass.__class__.__name__}', pad=20)
 
         plt.show()

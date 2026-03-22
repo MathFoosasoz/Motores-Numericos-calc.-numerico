@@ -146,7 +146,7 @@ Esse dicionário centraliza todos os parâmetros físicos e é passado para as c
 
 ---
 
-#### `Assembly(self)`
+#### `assembly(self)`
 
 **O que faz:** Monta a **matriz de condutâncias global** `A` da rede, que representa as relações de pressão entre todos os nós.
 
@@ -165,13 +165,13 @@ A matriz resultante é **simétrica**.
 
 ---
 
-#### `solveNetwork(self)`
+#### `solve_network(self)`
 
 **O que faz:** Impõe as condições de contorno e resolve o sistema linear para encontrar as pressões em cada nó.
 
 **Passo a passo:**
 
-1. **Chama `Assembly()`** para obter a matriz `A`.
+1. **Chama `assembly()`** para obter a matriz `A`.
 
 2. **Condição de pressão no outlet** — o nó de saída tem pressão conhecida (normalmente zero). Para isso, zera-se a linha correspondente da matriz e coloca-se 1 na diagonal:
    ```
@@ -200,7 +200,7 @@ A matriz resultante é **simétrica**.
 
 **Passo a passo:**
 
-1. **Chama `solveNetwork()`** para obter as pressões.
+1. **Chama `solve_network()`** para obter as pressões.
 
 2. **Monta a matriz diagonal de condutâncias `K`** (num_pipes × num_pipes):
    ```
@@ -283,8 +283,8 @@ Gera um gráfico de linha simples: eixo x = tempo [s], eixo y = pressão [Pa].
 
 | Conceito | Onde aparece |
 |---|---|
-| Montagem de sistema linear | `Assembly()` |
-| Condições de contorno (Dirichlet) | `solveNetwork()` |
+| Montagem de sistema linear | `assembly()` |
+| Condições de contorno (Dirichlet) | `solve_network()` |
 | Eliminação gaussiana | `np.linalg.solve()` |
 | Produto matricial | `Q = K @ D @ P` |
 | Princípio da superposição | `Hydraulics_p4`, `Hydraulics_p5` |
