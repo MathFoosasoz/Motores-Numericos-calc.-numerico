@@ -2,7 +2,7 @@ import time    #pra medir tempo
 import numpy as np
 from hydraulics import Hydraulics
 from data_structures import GeraGrafo
-from env import CONFIG
+from env import CONFIG_H
 import matplotlib.pyplot as plt
 
 def complexity_analysis():
@@ -19,7 +19,7 @@ def complexity_analysis():
             Xno, conec = GeraGrafo(levels=level)
             Xno = Xno * 0.001  # mesma conversão que usamos no projeto
             
-            h = Hydraulics(conec, Xno, CONFIG)
+            h = Hydraulics(conec, Xno, CONFIG_H)
             
             #medindo tempo de montagem da matriz
             start = time.time()

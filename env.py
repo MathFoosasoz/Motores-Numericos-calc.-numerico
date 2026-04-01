@@ -17,7 +17,7 @@ CONFIG:
 
 """
 
-CONFIG = {
+CONFIG_H = {
     "N_INLET": 0,          
     "INLET_FLOW": 1.0e-7,    
     "INLET_PRESSURE": 100,
@@ -32,5 +32,13 @@ CONFIG = {
     "PIPE_AREA": 0.00000025,
     "VISCOSITY": 0.001,
     "TIME_ANALYSIS": [0, 10, 1000]
+
+}
+
+CONFIG_T = {
+
+    "CONDUCTIVITY": 1,
+    "BORDER_TEMPS": [1, 2, 3, 4],
+    "h": 1
 
 }
