@@ -1,4 +1,5 @@
 import numpy as np
+from shapely import boundary
 from plotting import PlotaMaxPressao, PlotaRede
 import matplotlib.pyplot as plt
 import time
@@ -55,26 +56,41 @@ class Thermal():
 
         b = np.zeros(nunk)
 
+        #dicionario dos indices das bordas e seus valores pra faciltar
         k = np.arange(self.N)
-        Iden = np.identity(nunk)
+        boundary={}
 
-        # PAREDE DIREITA
-        Id = self.ij2n(k, self.N -1,)
-        Atilde[Id,:], b[Id] = Iden[Id,:], TR 
+        for i in k:
+            boundary[self.ij2n(i,self.N-1)] = TR
+            boundary[self.ij2n(self.N-1,i)] = TT
+            boundary[self.ij2n(0,i)] = TL
+            boundary[self.ij2n(i,0)] = TB   
 
-        # PAREDE TOPO
-        It = self.ij2n(self.N - 1, k)
-        Atilde[It,:], b[It] = Iden[It,:], TT
+        #NOTA IMPORTANTE PARA O FUTURO: os quatro cantos da borda são "disputados" (por ex, o ponto (0,0) é parte da borda esquerda 
+        # e da borda inferior) não faço ideia de como isso pode afetar os resultados, mas é algo pra gente ter atenção
 
-        # PAREDE ESQUERDA
-        Ie = self.ij2n(k, 0)
-        Atilde[Ie,:], b[Ie] = Iden[Ie,:], TL
+        for index, value in boundary.items():
 
-        # PAREDE BAIXO
-        Ib = self.ij2n(0, k)
-        Atilde[Ib,:], b[Ib] = Iden[Ib,:], TB
+            for i in range(nunk):
+                if i != index:
+                    b[i] -= A[i, index]*value
 
-        Temperature = np.linalg.solve(Atilde, b)
+                    Atilde[i, index] = 0
+                    Atilde[index, i] = 0
+
+            Atilde[index, index] = 1
+            b[index] = value
+
+        #aplicação do método cholesky 
+        try: 
+            L = np.linalg.cholesky(Atilde)
+        except np.linalg.LinAlgError:
+            print("erro na montagem da matriz (não positiva ou não simétrica)")
+            return None
+        
+        y = np.linalg.solve(L, b)
+    
+        Temperature = np.linalg.solve(L.T, y)
         return Temperature
     
     def print_temp(self, temp):
