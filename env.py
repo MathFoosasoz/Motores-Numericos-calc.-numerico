@@ -1,19 +1,20 @@
 """
-CONFIG:
+
+CONFIG_H:
 
     N_INLET = indice do nó de entrada de vazão/pressão (se houver apenas uma entrada de vazão/pressão)
     INLET_FLOW = vazão de entrada
     INLET_PRESSURE = pressão de entrada
-    INLET_FLOW_DICT = dicionário onde as chaves são indices dos nós de entrada e os valores são as vazões de entrada
-    INLET_PRESSURE_DICT = dicionário onde as chaves são indices dos nós de entrada e os valores são as pressões de entrada
-    INLET_FLOW_SIN_DICT = dicionário que contém as constantes da função f(t) = A*sen(omega*t + theta) + B
-    INLET_FLOW_COS_DICT = dicionário que contém as constantes da função g(t) = A*cos(omega*t + theta) + B
+    INLET_FLOW_DICT = (dict) onde as chaves são indices dos nós de entrada e os valores são as vazões de entrada
+    INLET_PRESSURE_DICT = (dict) onde as chaves são indices dos nós de entrada e os valores são as pressões de entrada
+    INLET_FLOW_SIN_DICT = (dict) que contém as constantes da função f(t) = A*sen(omega*t + theta) + B
+    INLET_FLOW_COS_DICT = (dict) que contém as constantes da função g(t) = A*cos(omega*t + theta) + B
     N_OUTLET = indice do nó de saida de vazão/pressão (se houver apenas uma saida de vazão/pressão)
     OUTLET = pressão/vazão de saida
 
     PIPE_AREA = área da seção tranversal dos canos
     VISCOSITY = viscosidade do fluido
-    TIME_ANALYSIS = lista do tempo inicial, final e repartições (para funcionalidades que dependem de análise temporal)
+    TIME_ANALYSIS = (list) tempo inicial, final e repartições (para funcionalidades que dependem de análise temporal)
 
 """
 
@@ -35,10 +36,31 @@ CONFIG_H = {
 
 }
 
+"""
+CONFIG_T:
+
+    CONDUCTIVITY: Condutividade térmica fixa para a placa 
+    SOURCE: Valor fixo para a fonte térmica
+    N: (tuple) Discreções fixas para Nx e Ny (DEFINIDO FORA COMO N_CONFIG_T !!!)
+    L: (tuple) Dimensões da placa Lx e Ly
+    BORDER_TEMPS: (list) Temperaturas nas bordas, seguindo o padrão do ciclo trigonométrico (direita, cima, esquerda, baixo)
+
+    CIRCULAR_SOURCE_KNOWN_TEMP_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e temperatura da fonte circular
+    CIRCULAR_SOURCE_KNOWN_N_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e tupla das discretizações da fonte circular (problema 4)
+    MULTI_N: (list) Tuplas contendo as várias discreções Nx e Ny para análise (problema 1)
+
+"""
+N_CONFIG_T = (5, 8)
 CONFIG_T = {
 
-    "CONDUCTIVITY": 1,
-    "BORDER_TEMPS": [1, 2, 3, 4],
-    "h": 1
+    "CONDUCTIVITY": 0.2,
+    "SOURCE": 100000,
+    "N": N_CONFIG_T,
+    "L": (0.02, 0.01),
+    "BORDER_TEMPS": [30, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1)), 10, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1))],
+
+    "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.002, "x": 0.75, "y": 0.5, "T":30},
+    "CIRCULAR_SOURCE_KNOWN_N_DICT": { "R": 0.002, "x": 0.75, "y": 0.5, "N":(100,50)},
+    "MULTI_N": [(21, 11), (41, 21), (81, 41), (161, 81), (321, 161),]
 
 }

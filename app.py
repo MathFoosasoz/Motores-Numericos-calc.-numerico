@@ -4,9 +4,9 @@ from thermal import Thermal
 from data_structures import GeraGrafo
 from analysis import complexity_analysis
 
-def main():
+
+def main_hydraulics():
     config_h = env.CONFIG_H
-    config_t = env.CONFIG_T
 
     #Xno, conec = GeraGrafo(levels=3)
     #mm_to_m = 0.001
@@ -38,10 +38,20 @@ def main():
     #test_p6.run(print_info = True, plot = True)
     #complexity_analysis()
 
-    test_t = Thermal(config_t, 4)
-    t = test_t.SolveSystem()
-    test_t.print_temp(t)
+    return
+
+def main_thermal():
+
+    config_t = env.CONFIG_T
+
+    test_sparse = Thermal(config_t, method = "sparse")
+    test_cholesky = Thermal(config_t, method= "cholesky")
+    test_sparse.run(print_info = False, plot = True)
+    test_cholesky.run(print_info = False, plot= True)
+
+    return
 
 
 if __name__ == "__main__":
-    main()
+    main_hydraulics()
+    main_thermal()
