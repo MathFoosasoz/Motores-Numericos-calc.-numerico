@@ -142,8 +142,6 @@ class Thermal():
 
         return Temperature
 
-
-    
     def print_temp(self, temp):
         for i in range(self.N[1]-1, -1, -1):
             for j in range(self.N[0]):
@@ -172,7 +170,16 @@ class Thermal():
             print(f"Resultados para classe: {self.__class__.__name__}")
             print(f"Resolvido por: {self.method}")
             print(f"solução das temperaturas do sistema:")
-            self.print_temp(temps)
+            
+            if self.N[0]>21:
+                a = input("WARNING! Não é recomendado printar as temperaturas para mais de 20 discretizações horizontais. Ainda quer que imprima? (y/n) ")
+            
+            else:
+                a = "y"
+            
+            if a in "yY":
+                self.print_temp(temps)
+
 
         if plot:
             PlotaPlaca(*self.N, *self.L, temps)

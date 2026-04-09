@@ -45,12 +45,12 @@ CONFIG_T:
     L: (tuple) Dimensões da placa Lx e Ly
     BORDER_TEMPS: (list) Temperaturas nas bordas, seguindo o padrão do ciclo trigonométrico (direita, cima, esquerda, baixo)
 
-    CIRCULAR_SOURCE_KNOWN_TEMP_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e temperatura da fonte circular
+    CIRCULAR_SOURCE_KNOWN_TEMP_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e temperatura da fonte circular (problema 2)
     CIRCULAR_SOURCE_KNOWN_N_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e tupla das discretizações da fonte circular (problema 4)
     MULTI_N: (list) Tuplas contendo as várias discreções Nx e Ny para análise (problema 1)
 
 """
-N_CONFIG_T = (5, 8)
+N_CONFIG_T = (9, 5)
 CONFIG_T = {
 
     "CONDUCTIVITY": 0.2,

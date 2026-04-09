@@ -4,54 +4,17 @@ from thermal import Thermal
 from data_structures import GeraGrafo
 from analysis import complexity_analysis
 
-
-def main_hydraulics():
-    config_h = env.CONFIG_H
-
-    #Xno, conec = GeraGrafo(levels=3)
-    #mm_to_m = 0.001
-    #Xno = Xno * mm_to_m
-
-    #test = Hydraulics(conec, Xno, config_h)
-    #test.run(print_info = True, plot = True)
-    #complexity_analysis()
-
-    #test_p1 = Hydraulics_p1(conec, Xno, config_h)
-    #test_p1.run(print_info = True, plot = True)
-    #complexity_analysis()
-
-    #test_p2 = Hydraulics_p2(conec, Xno, config_h)
-    #test_p2.run(print_info = True, plot = True)
-    #complexity_analysis()
-  
-    #test_p3 = Hydraulics_p3(conec, Xno, config_h)
-    #test_p3.run(print_info = True, plot = False)
-    #complexity_analysis()
-
-    #test_p4 = Hydraulics_p4(conec, Xno, config_h)
-    #test_p4.run(print_info = True, plot = True)
-
-    #test_p5 = Hydraulics_p5(conec, Xno, config_h)
-    #test_p5.run(print_info = True, plot = True)
-
-    #test_p6 = Hydraulics_p6(conec, Xno, config_h)
-    #test_p6.run(print_info = True, plot = True)
-    #complexity_analysis()
-
-    return
-
-def main_thermal():
+def main():
 
     config_t = env.CONFIG_T
 
     test_sparse = Thermal(config_t, method = "sparse")
-    test_cholesky = Thermal(config_t, method= "cholesky")
-    test_sparse.run(print_info = False, plot = True)
-    test_cholesky.run(print_info = False, plot= True)
+    test_cholesky = Thermal(config_t, method = "cholesky")
+    test_sparse.run(print_info = True, plot = True)
+    test_cholesky.run(print_info = True, plot= True)
 
     return
 
 
 if __name__ == "__main__":
-    main_hydraulics()
-    main_thermal()
+    main()
