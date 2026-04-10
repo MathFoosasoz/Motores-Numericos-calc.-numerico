@@ -54,7 +54,7 @@ N_CONFIG_T = (9, 5)
 CONFIG_T = {
 
     "CONDUCTIVITY": 0.2,
-    "SOURCE": 100000,
+    "SOURCE": 1000000,
     "N": N_CONFIG_T,
     "L": (0.02, 0.01),
     "BORDER_TEMPS": [30, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1)), 10, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1))],
