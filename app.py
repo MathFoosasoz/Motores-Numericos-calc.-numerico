@@ -9,12 +9,12 @@ def main():
     config_t = env.CONFIG_T
 
     #test_sparse = Thermal(config_t, method = "sparse")
-    test_cholesky = Thermal(config_t, method = "cholesky")
+    #test_cholesky = Thermal(config_t, method = "cholesky")
     #test_sparse.run(print_info = True, plot = True)
-    test_cholesky.run(print_info = True, plot= True)
+    #test_cholesky.run(print_info = True, plot= True)
 
-    #test_P2 = Thermal_P2(config_t, method="cholesky")
-    #test_P2.run(print_info = True, plot = True)
+    test_P2 = Thermal_P2(config_t, method="sparse")
+    test_P2.run(print_info = False, plot = True)
 
     return
 

@@ -135,7 +135,7 @@ def PlotaMaxPressao(pressures, time_constants):
   plt.grid(True)
 
 
-def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None):
+def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None, Tmax=None):
     x = np.linspace(0.0, Lx, Nx)
     y = np.linspace(0.0, Ly, Ny)
 
@@ -143,10 +143,16 @@ def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None):
 
     Z = np.copy(T).reshape(Ny, Nx)
 
+    title = f'Contours of temperature, N=({Nx}, {Ny})'
+
+    if Tmax is not None:
+       T_max = np.max(T)
+       title += f', Tmax = {T_max:.2f}ºC'
+
     if(flag_type == 'contour'):
       fig, ax = plt.subplots(figsize=(6,6))
       ax.set_aspect('equal')
-      ax.set(xlabel='x', ylabel='y', title='Contours of temperature')
+      ax.set(xlabel='x', ylabel='y', title=f'Contours of temperature, N=({Nx}, {Ny})')
       im = ax.contourf(X, Y, Z, 20, cmap='jet')
       im2 = ax.contour(X, Y, Z, 20, linewidths=0.25, colors='k')
       fig.colorbar(im, ax=ax, orientation='horizontal')
@@ -166,3 +172,20 @@ def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None):
     plt.show()
 
     return
+
+
+def PlotaEixoTemps(N_eixo, L_eixo, T, filename=None):
+  x = np.linspace(0, L_eixo, N_eixo)
+  y = T
+
+  plt.plot(x, y)
+  plt.title("Temperatura no eixo central")
+  plt.xlabel("Eixo placa (m)")
+  plt.ylabel("Temperatura (ºC)")
+
+  plt.xticks([0, L_eixo/2, L_eixo])
+
+  if(filename is not None):
+      plt.savefig(filename)
+
+  plt.show() 

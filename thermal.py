@@ -1,5 +1,5 @@
 import numpy as np
-from plotting import PlotaMaxPressao, PlotaRede, PlotaPlaca
+from plotting import PlotaPlaca, PlotaEixoTemps
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import matplotlib.pyplot as plt
@@ -13,10 +13,8 @@ class Thermal():
         self.L = config["L"]
         self.f = config["SOURCE"]
         self.K = config["CONDUCTIVITY"]
-        self.h2 = self.find_square_area()
 
         self.method = method
-
         self.temps = config["BORDER_TEMPS"]
 
     def  ij2n(self, i, j):
@@ -27,6 +25,8 @@ class Thermal():
 
     def assembly(self):
         nunk = self.N[0]*self.N[1]
+
+        h2 = self.find_square_area()
 
         A = np.zeros(shape=(nunk,nunk))
         b = np.zeros(shape=(nunk,))
@@ -40,24 +40,13 @@ class Thermal():
                 Is = self.ij2n(j, i-1)
 
                 A[Ic,[Ic,Ie,Iw,In,Is]] = 4, -1, -1, -1, -1
-                b[Ic] = (self.h2 * self.f / self.K)
+                b[Ic] = (h2 * self.f / self.K)
 
         #print(A)
         return A, b
     
-    @staticmethod
-    def is_symetric(M):
-        shape = M.shape
-
-        for i in range(shape[0]):
-            for j in range(i):
-                if M[i][j] != M[j][i]:
-                    print("assymetric!")
-                    return
-
-        print("symetric!")
-
     def solve_system_cholesky(self):
+
         nunk = self.N[0]*self.N[1]
 
         A, b = self.assembly()
@@ -114,7 +103,7 @@ class Thermal():
         TR, TT, TL, TB = self.temps
 
         Atilde = A.copy()
-        b = b.copy()
+        btilde = b.copy()
 
         kx = np.arange(self.N[0])
         ky = np.arange(self.N[1])
@@ -123,22 +112,22 @@ class Thermal():
 
         # PAREDE DIREITA
         Id = self.ij2n(ky, self.N[0] -1,)
-        Atilde[Id,:], b[Id] = Iden[Id,:], TR 
+        Atilde[Id,:], btilde[Id] = Iden[Id,:], TR 
 
         # PAREDE TOPO
         It = self.ij2n(self.N[1] - 1, kx)
-        Atilde[It,:], b[It] = Iden[It,:], TT(kx)
+        Atilde[It,:], btilde[It] = Iden[It,:], TT(kx)
 
         # PAREDE ESQUERDA
         Ie = self.ij2n(ky, 0)
-        Atilde[Ie,:], b[Ie] = Iden[Ie,:], TL
+        Atilde[Ie,:], btilde[Ie] = Iden[Ie,:], TL
 
         # PAREDE BAIXO
         Ib = self.ij2n(0, kx)
-        Atilde[Ib,:], b[Ib] = Iden[Ib,:], TB(kx)
+        Atilde[Ib,:], btilde[Ib] = Iden[Ib,:], TB(kx)
 
         Atildesp = sparse.csr_matrix(Atilde)
-        Temperature = spsolve(Atildesp, b)
+        Temperature = spsolve(Atildesp, btilde)
 
         return Temperature
 
@@ -169,6 +158,7 @@ class Thermal():
         if print_info:
             print(f"Resultados para classe: {self.__class__.__name__}")
             print(f"Resolvido por: {self.method}")
+            print(f"Número de discretizações: {self.N}")
             print(f"solução das temperaturas do sistema:")
             
             if self.N[0]>21:
@@ -190,6 +180,7 @@ class Thermal_P2(Thermal):
     def __init__(self, config, method = "cholesky"):
         super().__init__(config)
 
+        self.N = config["MULTI_N"]
         circle_dict = config["CIRCULAR_SOURCE_KNOWN_TEMP_DICT"]
         self.circle_radius = circle_dict["R"]
         self.circle_coords = circle_dict["coords"]
@@ -231,6 +222,7 @@ class Thermal_P2(Thermal):
         nunk = self.N[0]*self.N[1]
 
         self.get_index_inside_circus()
+        h2 = self.find_square_area()
 
         A = np.zeros(shape=(nunk,nunk))
         b = np.zeros(shape=(nunk,))
@@ -248,7 +240,7 @@ class Thermal_P2(Thermal):
 
 
                     A[Ic,[Ic,Ie,Iw,In,Is]] = 4, -1, -1, -1, -1
-                    b[Ic] = (self.h2 * self.f / self.K)
+                    b[Ic] = (h2 * self.f / self.K)
 
 
         #print(A)
@@ -306,33 +298,85 @@ class Thermal_P2(Thermal):
         Temperature = np.linalg.solve(L.T, y)
         return Temperature
     
+    def solve_system_sparse(self):
+        nunk = self.N[0]*self.N[1]
+
+        A, b = self.assembly()
+
+        TR, TT, TL, TB = self.temps
+
+        Atilde = A.copy()
+        btilde = b.copy()
+
+        kx = np.arange(self.N[0])
+        ky = np.arange(self.N[1])
+
+        Iden = np.identity(nunk)
+
+        # CÍRCULO
+        Ic = self.index_inside_circus
+        Atilde[Ic,:], btilde[Ic] = Iden[Ic,:], self.circle_temp 
+
+        # PAREDE DIREITA
+        Id = self.ij2n(ky, self.N[0] -1,)
+        Atilde[Id,:], btilde[Id] = Iden[Id,:], TR 
+
+        # PAREDE TOPO
+        It = self.ij2n(self.N[1] - 1, kx)
+        Atilde[It,:], btilde[It] = Iden[It,:], TT(kx)
+
+        # PAREDE ESQUERDA
+        Ie = self.ij2n(ky, 0)
+        Atilde[Ie,:], btilde[Ie] = Iden[Ie,:], TL
+
+        # PAREDE BAIXO
+        Ib = self.ij2n(0, kx)
+        Atilde[Ib,:], btilde[Ib] = Iden[Ib,:], TB(kx)
+
+        Atildesp = sparse.csr_matrix(Atilde)
+        Temperature = spsolve(Atildesp, btilde)
+
+        return Temperature
+    
     def run(self, print_info = False, plot = False):
 
-        if self.method == "cholesky":
-            temps = self.solve_system_cholesky()
+        preserve_self_N = self.N
 
-        elif self.method == "sparse":
-            temps = self.solve_system_sparse()
+        for n in preserve_self_N:
+            self.N = n
 
-        else:
-            raise ValueError()
+            if self.method == "cholesky":
+                temps = self.solve_system_cholesky()
 
-        if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Resolvido por: {self.method}")
-            print(f"solução das temperaturas do sistema:")
-            
-            if self.N[0]>21:
-                with open("example.txt", "a") as file:
-                    for i in range(self.N[1]-1, -1, -1):
-                        for j in range(self.N[0]):
-                            global_index = self.ij2n(i,j)
-                            t = self.round_up_to_nearest_00_1(temps[global_index])
-                            file.write(f"{t:.2f}  ")
+            elif self.method == "sparse":
+                temps = self.solve_system_sparse()
+
+            else:
+                raise ValueError()
+
+            if print_info:
+                print(f"Resultados para classe: {self.__class__.__name__}")
+                print(f"Resolvido por: {self.method}")
+                print(f"Número de discretizações: {self.N}")
+                print(f"Solução das temperaturas do sistema:")
+                
+                if self.N[0]>21:
+                    a = input("WARNING! Não é recomendado printar as temperaturas para mais de 20 discretizações horizontais. Ainda quer que imprima? (y/n) ")
+                
+                else:
+                    a = "y"
+                
+                if a in "yY":
+                    self.print_temp(temps)
 
 
-                        file.write("\n")
+            if plot:
+                PlotaPlaca(*self.N, *self.L, temps, Tmax= True)
 
+                kx = np.arange(self.N[0]-1)
+                y = (self.N[1]-1)//2
 
-        if plot:
-            PlotaPlaca(*self.N, *self.L, temps, filename="img.png")
+                Ic = self.ij2n(y, kx)
+                temps_centrais = temps[Ic]
+
+                PlotaEixoTemps(self.N[0]-1, self.L[0], temps_centrais)
