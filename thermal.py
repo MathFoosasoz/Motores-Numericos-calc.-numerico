@@ -183,7 +183,120 @@ class Thermal():
 
         if plot:
             PlotaPlaca(*self.N, *self.L, temps)
+            
 
+class Thermal_P1_extra(Thermal):
+    
+    def __init__(self, config, method="jacobi"):
+        super().__init__(config, method=method)
+        
+        self.method = method
+        self.tol = config.get("TOLERANCE", 1e-5)
+        self.max_iter = config.get("MAX_ITERATIONS", 5000)
+        
+    def solve_system_iterative(self):
+        
+     # ESSA PARTE DE APLICAR AS CONDIÇÕES INICIAIS FOI COPIADA DO solve_system_cholesky
+     
+        nunk = self.N[0]*self.N[1]
 
+        A, b = self.assembly()
 
+        TR, TT, TL, TB = self.temps
 
+        Atilde = A.copy()
+        b = b.copy()
+
+        kx = np.arange(self.N[0])
+        ky = np.arange(self.N[1])
+
+        #dicionario dos indices das bordas e seus valores pra facilitar
+        boundary={}
+
+        for i in kx:
+            boundary[self.ij2n(self.N[1]-1,i)] = TT(i)
+            boundary[self.ij2n(0,i)] = TB(i)
+
+        for i in ky:
+            boundary[self.ij2n(i,self.N[0]-1)] = TR
+            boundary[self.ij2n(i,0)] = TL
+
+        # PEGUE Atilde AQ (PROBLEMA DIFÍCIL 1)!!! 
+
+        for index, value in boundary.items():
+            for i in range(nunk):
+                if i != index:
+                    b[i] -= A[i, index]*value
+
+                    Atilde[i, index] = 0
+                    Atilde[index, i] = 0
+
+            Atilde[index, index] = 1
+            b[index] = value
+            
+     # FIM DA PARTE COPIADA
+            
+        if self.method == "jacobi":
+            return self._jacobi(Atilde, b, self.tol, self.max_iter)
+        elif self.method == "gauss_seidel":
+            return self._gauss_seidel(Atilde, b, self.tol, self.max_iter)
+        else:
+            raise ValueError()
+
+    def _jacobi(self, A, b, tol, max_iter):
+        n = len(b)
+        x = np.zeros_like(b) # chute inicial vetor nulo
+        D = np.diag(A)
+        R = A - np.diag(D)
+        
+        for k in range(max_iter):
+            
+            x_new = (b - np.dot(R, x)) / D
+            
+            # testa convergencia
+            if np.linalg.norm(x_new - x, np.inf) < tol:
+                print(f"Jacobi converge em {k+1} iterações")
+                return x_new
+            x = x_new
+            
+        print("Jacobi não converge no limite de iterações")
+        return x
+
+    def _gauss_seidel(self, A, b, tol, max_iter):
+        n = len(b)
+        x = np.zeros_like(b) # chute inicial vetor nulo
+        
+        for k in range(max_iter):
+            x_old = x.copy()
+            for i in range(n):
+                s = np.dot(A[i, :i], x[:i]) + np.dot(A[i, i+1:], x[i+1:])
+                x[i] = (b[i] - s) / A[i, i]
+            
+            # testa convergencia
+            if np.linalg.norm(x - x_old, np.inf) < tol:
+                print(f"Gauss-Seidel converge em {k+1} iterações")
+                return x
+        
+        print("Gauss-Seidel não converge no limite de iterações")
+        return x
+
+    def run(self, print_info=False, plot=False):
+        temps = self.solve_system_iterative()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Resolvido por: {self.method}")
+            print("solução das temperaturas do sistema:")
+            
+            if self.N[0] > 21:
+                a = input("WARNING! Não é recomendado printar as temperaturas para mais de 20 discretizações horizontais. Ainda quer que imprima? (y/n) ")
+            else:
+                a = "y"
+            
+            if a in "yY":
+                self.print_temp(temps)
+
+        if plot:
+           
+            from plotting import PlotaPlaca 
+            PlotaPlaca(*self.N, *self.L, temps)

@@ -48,9 +48,14 @@ CONFIG_T:
     CIRCULAR_SOURCE_KNOWN_TEMP_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e temperatura da fonte circular (problema 2)
     CIRCULAR_SOURCE_KNOWN_N_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e tupla das discretizações da fonte circular (problema 4)
     MULTI_N: (list) Tuplas contendo as várias discreções Nx e Ny para análise (problema 1)
+    
+    --(P1 EXTRA)--
+    TOLERANCE: Valor aceitável do erro da aproximação dos métodos iterativos (para quando o erro atinge esse valor)
+    MAX_ITERATIONS: Limite máximo de iterações que os métodos de jacobi e gauss-seidel irão realizar antes de desistir
+    --(P1 EXTRA)--
 
 """
-N_CONFIG_T = (9, 5)
+N_CONFIG_T = (30, 30)
 CONFIG_T = {
 
     "CONDUCTIVITY": 0.2,
@@ -61,6 +66,9 @@ CONFIG_T = {
 
     "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.002, "x": 0.75, "y": 0.5, "T":30},
     "CIRCULAR_SOURCE_KNOWN_N_DICT": { "R": 0.002, "x": 0.75, "y": 0.5, "N":(100,50)},
-    "MULTI_N": [(21, 11), (41, 21), (81, 41), (161, 81), (321, 161),]
+    "MULTI_N": [(21, 11), (41, 21), (81, 41), (161, 81), (321, 161),],
+    
+    "TOLERANCE": 1e-5,
+    "MAX_ITERATIONS": 10000
 
 }
