@@ -243,7 +243,7 @@ class Thermal_P1_extra(Thermal):
         else:
             raise ValueError()
 
-    def _jacobi(self, A, b, tol, max_iter):
+    def _jacobi(self, A, b, tol, max_iter, callback=None):
         n = len(b)
         x = np.zeros_like(b) # chute inicial vetor nulo
         D = np.diag(A)
@@ -252,6 +252,8 @@ class Thermal_P1_extra(Thermal):
         for k in range(max_iter):
             
             x_new = (b - np.dot(R, x)) / D
+
+            if callback: callback(k, x_new)
             
             # testa convergencia
             if np.linalg.norm(x_new - x, np.inf) < tol:
@@ -262,7 +264,7 @@ class Thermal_P1_extra(Thermal):
         print("Jacobi não converge no limite de iterações")
         return x
 
-    def _gauss_seidel(self, A, b, tol, max_iter):
+    def _gauss_seidel(self, A, b, tol, max_iter, callback=None):
         n = len(b)
         x = np.zeros_like(b) # chute inicial vetor nulo
         
@@ -271,6 +273,8 @@ class Thermal_P1_extra(Thermal):
             for i in range(n):
                 s = np.dot(A[i, :i], x[:i]) + np.dot(A[i, i+1:], x[i+1:])
                 x[i] = (b[i] - s) / A[i, i]
+
+                if callback: callback(k, x)
             
             # testa convergencia
             if np.linalg.norm(x - x_old, np.inf) < tol:
@@ -300,3 +304,98 @@ class Thermal_P1_extra(Thermal):
            
             from plotting import PlotaPlaca 
             PlotaPlaca(*self.N, *self.L, temps)
+
+class Thermal_P2_Extra(Thermal_P1_extra):
+    def __init__(self, config, method="jacobi"):
+        super().__init__(config, method=method)
+        self.histories = {"jacobi": [], "gauss_seidel": []}
+
+    def prepare_system(self):
+        A, b_orig = self.assembly()
+        Atilde = A.copy()
+        b = b_orig.copy()
+        nunk = self.N[0] * self.N[1]
+
+        kx = np.arange(self.N[0])
+        ky = np.arange(self.N[1])
+        boundary = {}
+        
+        #mesma lógica de aplicar as condições de contorno do solve_system_cholesky
+        for i in kx:
+            boundary[self.ij2n(self.N[1]-1, i)] = self.temps[1](i) 
+            boundary[self.ij2n(0, i)] = self.temps[3](i)     
+
+        for i in ky:
+            boundary[self.ij2n(i, self.N[0]-1)] = self.temps[0]   
+            boundary[self.ij2n(i, 0)] = self.temps[2]            
+
+        for index, value in boundary.items():
+            for i in range(nunk):
+                if i != index:
+                    b[i] -= A[i, index] * value
+                    Atilde[i, index] = 0
+                    Atilde[index, i] = 0
+            Atilde[index, index] = 1
+            b[index] = value
+        return Atilde, b
+
+    def run_comparison_history(self, frame_step=20):
+        Atilde, b = self.prepare_system()
+        
+        self.histories["jacobi"] = []
+        self.histories["gauss_seidel"] = []
+
+        #callbacks para armazenar os históricos da iteração de jacobi e gauss-seidel
+        def cb_j(k, current_x):
+            if k % frame_step == 0:
+                self.histories["jacobi"].append(current_x.copy())
+
+        def cb_gs(k, current_x):
+            if k % frame_step == 0:
+                self.histories["gauss_seidel"].append(current_x.copy())
+
+
+        print("Rodando Jacobi...")
+        res_j = self._jacobi(Atilde, b, self.tol, self.max_iter, callback=cb_j)
+        self.histories["jacobi"].append(res_j.copy())
+
+        print("Rodando Gauss-Seidel...")
+        res_gs = self._gauss_seidel(Atilde, b, self.tol, self.max_iter, callback=cb_gs)
+        self.histories["gauss_seidel"].append(res_gs.copy())
+
+        return res_j, res_gs
+
+    def animate_comparison(self, interval=50):
+        import matplotlib.animation as animation
+
+        h_j = self.histories["jacobi"]
+        h_gs = self.histories["gauss_seidel"]
+        shape = (self.N[1], self.N[0])
+        
+        v_min = 0
+        v_max = max(np.max(h_j[-1]), np.max(h_gs[-1]))
+
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
+        
+        im1 = ax1.imshow(h_j[0].reshape(shape), cmap='coolwarm', origin='lower', vmin=v_min, vmax=v_max)
+        im2 = ax2.imshow(h_gs[0].reshape(shape), cmap='coolwarm', origin='lower', vmin=v_min, vmax=v_max)
+        
+        ax1.set_title('Evolução: Jacobi')
+        ax2.set_title('Evolução: Gauss-Seidel')
+
+        fig.colorbar(im1, ax=ax1, label='Temp (°C)')
+        fig.colorbar(im2, ax=ax2, label='Temp (°C)')
+
+        max_frames = max(len(h_j), len(h_gs))
+
+        def update(frame):
+            im1.set_array(h_j[min(frame, len(h_j)-1)].reshape(shape))
+            im2.set_array(h_gs[min(frame, len(h_gs)-1)].reshape(shape))
+            return [im1, im2]
+
+        ani = animation.FuncAnimation(fig, update, frames=max_frames, 
+                                      blit=True, repeat=False, interval=interval)
+        plt.tight_layout()
+        plt.show()
+        return ani
+
