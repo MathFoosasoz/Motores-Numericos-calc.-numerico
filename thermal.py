@@ -380,3 +380,122 @@ class Thermal_P2(Thermal):
                 temps_centrais = temps[Ic]
 
                 PlotaEixoTemps(self.N[0]-1, self.L[0], temps_centrais)
+
+
+class Thermal_P4(Thermal_P2):
+
+    def __init__(self, config, method="sparse"):
+        super().__init__(config, method)
+        self.config = config
+        self.N = config["N"]
+
+    def definir_reta(self):
+        import numpy as np
+
+        original_TC = self.circle_temp
+
+        self.circle_temp = 0
+        T0 = self.solve_system_sparse()
+
+        self.circle_temp = 1
+        T1 = self.solve_system_sparse()
+
+        self.circle_temp = original_TC
+
+        dT = T1 - T0
+
+        TC_values = np.linspace(0, 60, 200)
+        T_max = np.empty_like(TC_values)
+        T_mean = np.empty_like(TC_values)
+
+        for idx, TC in enumerate(TC_values):
+            T_field = T0 + TC * dT
+            T_max[idx] = np.max(T_field)
+            T_mean[idx] = np.mean(T_field)
+
+        return TC_values, T_max, T_mean
+
+    def run(self, plot=False):
+
+        TC, T_max, T_mean = self.definir_reta()
+
+        if plot:
+            from plotting import plot_problem4
+            plot_problem4(TC, T_max, T_mean, filename="p4.png")
+
+
+class Thermal_P5(Thermal_P2):
+
+    def __init__(self, config, k_node, method="sparse"):
+        super().__init__(config, method)
+        self.config = config
+        self.k_node = k_node
+        self.N = config["N"]
+
+    def solve(self):
+        import numpy as np
+
+        def make_config(TR, TC):
+            cfg = self.config.copy()
+
+            cfg["MULTI_N"] = [self.config["N"]]
+
+            cfg["BORDER_TEMPS"] = [
+                TR,
+                self.config["BORDER_TEMPS"][1],
+                self.config["BORDER_TEMPS"][2],
+                self.config["BORDER_TEMPS"][3],
+            ]
+
+            cfg["CIRCULAR_SOURCE_KNOWN_TEMP_DICT"] = {
+                **self.config["CIRCULAR_SOURCE_KNOWN_TEMP_DICT"],
+                "T": TC,
+            }
+
+            return cfg
+
+        def solve_single(TR, TC):
+            sim = Thermal_P2(make_config(TR, TC), method="sparse")
+            sim.N = self.config["N"] 
+            return sim.solve_system_sparse()
+
+        pairs = [(30.0, 0.0), (30.0, 30.0), (0.0, 0.0)]
+
+        T_k_vals = []
+        for TR, TC in pairs:
+            T_field = solve_single(TR, TC)
+            T_k_vals.append(T_field[self.k_node])
+
+        M = np.array([
+            [pairs[0][0], pairs[0][1], 1.0],
+            [pairs[1][0], pairs[1][1], 1.0],
+            [pairs[2][0], pairs[2][1], 1.0],
+        ])
+
+        a, b, c = np.linalg.solve(M, np.array(T_k_vals))
+
+        return a, b, c
+
+    def run(self, print_info=False):
+
+        a, b, c = self.solve()
+
+        if print_info:
+            print("\n--- Problema 5 ---")
+
+            print(f"\nCoeficientes encontrados (nó k={self.k_node})")
+            print(f"  a = {a:.8f}   (sensibilidade a T_R)")
+            print(f"  b = {b:.8f}   (sensibilidade a T_C)")
+            print(f"  c = {c:.8f}   (termo independente)")
+            print(f"\nEquação linear\n  T_{self.k_node} = {a:.6f}·T_R  +  {b:.6f}·T_C  +  {c:.6f}")    
+    
+
+if __name__ == "__main__":
+    from env import CONFIG_T
+
+    p4 = Thermal_P4(CONFIG_T)
+    p4.run(plot=True)
+
+    p5 = Thermal_P5(CONFIG_T, k_node=233)
+    p5.run(print_info=True)
+    
