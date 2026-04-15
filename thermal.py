@@ -270,11 +270,11 @@ class Thermal_P1_extra(Thermal):
         
         for k in range(max_iter):
             x_old = x.copy()
+            if callback: callback(k, x)
             for i in range(n):
                 s = np.dot(A[i, :i], x[:i]) + np.dot(A[i, i+1:], x[i+1:])
                 x[i] = (b[i] - s) / A[i, i]
 
-                if callback: callback(k, x)
             
             # testa convergencia
             if np.linalg.norm(x - x_old, np.inf) < tol:
