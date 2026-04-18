@@ -189,3 +189,23 @@ def PlotaEixoTemps(N_eixo, L_eixo, T, filename=None):
       plt.savefig(filename)
 
   plt.show() 
+
+
+def plot_problem4(TC, Tmax, Tmean, filename=None):
+    import matplotlib.pyplot as plt
+
+    plt.figure(figsize=(8,5))
+    plt.plot(TC, Tmax, label="Tmax")
+    plt.plot(TC, Tmean, label="Tmean")
+
+    plt.xlabel("Tc (°C)")
+    plt.ylabel("Temperatura (°C)")
+    plt.title("Temperatura máxima e média vs Tc")
+
+    plt.legend()
+    plt.grid(True)
+
+    if filename:
+        plt.savefig(filename)
+
+    plt.show()
