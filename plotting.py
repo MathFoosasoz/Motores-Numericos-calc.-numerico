@@ -213,3 +213,30 @@ def plot_problem4(TC, Tmax, Tmean, filename=None):
         plt.savefig(filename)
 
     plt.show()
+    
+    
+def plot_p1_extra_subdivisions(nodes_list, times_j, times_gs):
+    plt.figure(figsize=(8, 5))
+    plt.plot(nodes_list, times_j, marker='o', color='blue', label='Jacobi')
+    plt.plot(nodes_list, times_gs, marker='s', color='orange', label='Gauss-Seidel')
+    
+    plt.title("Tempo de Execução vs Subdivisões")
+    plt.xlabel("Subdivisões (Total de Nós)")
+    plt.ylabel("Tempo (s)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_p1_extra_tolerance(tol_list, times_j, times_gs):
+    plt.figure(figsize=(8, 5))
+    plt.plot(tol_list, times_j, marker='o', color='blue', label='Jacobi')
+    plt.plot(tol_list, times_gs, marker='s', color='orange', label='Gauss-Seidel')
+    
+    plt.title("Tempo de Execução vs Tolerância")
+    plt.xlabel("Tolerância")
+    plt.ylabel("Tempo (s)")
+    plt.xscale('log') 
+    plt.gca().invert_xaxis() 
+    plt.legend()
+    plt.grid(True)
+    plt.show()

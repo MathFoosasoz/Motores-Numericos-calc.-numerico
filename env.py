@@ -67,9 +67,10 @@ CONFIG_T = {
     "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.002, "coords": (0.75, 0.5), "T": 30},
     "CIRCULAR_SOURCE_KNOWN_N_DICT": { "R": 0.002, "coords": (0.75, 0.5), "N":(100,50)},
     "MULTI_N": [(21, 11), (41, 21), (81, 41), (161, 81), (321, 161),],
-
+    
     "TOLERANCE": 1e-5,
-    "MAX_ITERATIONS": 10000,
+    "MAX_ITERATIONS": 15000,
+    "MULTI_T": [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11],
 
     "T_GOAL": 39.5
 

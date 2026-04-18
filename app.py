@@ -42,6 +42,8 @@ def main():
     #test_gauss_seidel = Thermal_P1_extra(config_t, method = "gauss_seidel")
     #test_jacobi.run(print_info = True, plot = True)
     #test_gauss_seidel.run(print_info = True, plot = True)
+    
+    #test_gauss_seidel.run(print_info = True, plot = True, analyze_subdivisions=True, analyze_tolerance=True)
 
     #FUNCIONA !!!
     #simulacao = Thermal_P2_Extra(config_t)

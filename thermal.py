@@ -1,5 +1,5 @@
 import numpy as np
-from plotting import PlotaPlaca, PlotaEixoTemps, plot_problem4
+from plotting import PlotaPlaca, PlotaEixoTemps, plot_problem4, plot_p1_extra_subdivisions, plot_p1_extra_tolerance
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import matplotlib.pyplot as plt
@@ -669,7 +669,8 @@ class Thermal_P1_extra(Thermal):
         
         self.method = method
         self.tol = config.get("TOLERANCE", 1e-5)
-        self.max_iter = config.get("MAX_ITERATIONS", 5000)
+        self.max_iter = config.get("MAX_ITERATIONS", 15000)
+        self.config = config
         
     def solve_system_iterative(self):
         
@@ -761,7 +762,17 @@ class Thermal_P1_extra(Thermal):
         print("Gauss-Seidel não converge no limite de iterações")
         return x
 
-    def run(self, print_info=False, plot=False):
+    def run(self, print_info=False, plot=False, analyze_subdivisions=False, analyze_tolerance=False):
+
+        if analyze_subdivisions:
+            self.analyze_time_subdivisions()
+
+        if analyze_tolerance:
+            self.analyze_tolerance_subdivisions()
+            
+        if analyze_subdivisions or analyze_tolerance:
+            return
+            
         temps = self.solve_system_iterative()
 
         if print_info:
@@ -778,9 +789,74 @@ class Thermal_P1_extra(Thermal):
                 self.print_temp(temps)
 
         if plot:
-           
             from plotting import PlotaPlaca 
             PlotaPlaca(*self.N, *self.L, temps)
+            
+            
+    def analyze_time_subdivisions(self):
+        multi_n = self.config.get("MULTI_N", [])
+        original_n = self.N
+        original_method = self.method 
+        
+        nodes_list = []
+        times_j = []
+        times_gs = []
+
+        print("Gerando gráfico de tempo vs subdivisões...")
+
+        for n_tuple in multi_n:
+            self.N = n_tuple
+            nodes_list.append(self.N[0] * self.N[1])
+            
+            self.method = "jacobi"
+            t0 = time.perf_counter()
+            self.solve_system_iterative()
+            t1 = time.perf_counter()
+            times_j.append(t1 - t0)
+
+            self.method = "gauss_seidel"
+            t0 = time.perf_counter()
+            self.solve_system_iterative()
+            t1 = time.perf_counter()
+            times_gs.append(t1 - t0)
+
+        self.N = original_n
+        self.method = original_method
+
+        plot_p1_extra_subdivisions(nodes_list, times_j, times_gs)
+
+
+    def analyze_tolerance_subdivisions(self):
+        multi_t = self.config.get("MULTI_T", [])
+        original_tol = self.tol
+        original_method = self.method 
+        
+        tol_list = []
+        times_j = []
+        times_gs = []
+
+        print("Gerando gráfico de tempo vs tolerância...")
+
+        for t_val in multi_t:
+            self.tol = t_val
+            tol_list.append(t_val)
+            
+            self.method = "jacobi"
+            t0 = time.perf_counter()
+            self.solve_system_iterative()
+            t1 = time.perf_counter()
+            times_j.append(t1 - t0)
+
+            self.method = "gauss_seidel"
+            t0 = time.perf_counter()
+            self.solve_system_iterative()
+            t1 = time.perf_counter()
+            times_gs.append(t1 - t0)
+
+        self.tol = original_tol
+        self.method = original_method
+
+        plot_p1_extra_tolerance(tol_list, times_j, times_gs)
 
 class Thermal_P2_Extra(Thermal_P1_extra):
     def __init__(self, config, method="jacobi"):
