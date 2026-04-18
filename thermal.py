@@ -220,7 +220,41 @@ class Thermal_P1(Thermal):
 
             if print_info:
                 print(f"Malha {n} analisada. Esparsa: {t_sparse:.4f}s | Densa: {'Pulada' if t_dense is None else f'{t_dense:.4f}s'}")
+
+        if plot:
+            # GERAR TABELA
+            colunas = ["Malha", "Nós", "Esparsa (s)", "Densa (s)"]
+
+            dados = []
+            for r in resultados:
+                tempo_denso = f"{r['Densa (s)']:.6f}" if r['Densa (s)'] is not None else "Pulada"
                 
+                dados.append([
+                    r["Malha"],
+                    r["Nós"],
+                    f"{r['Esparsa (s)']:.6f}",
+                    tempo_denso
+                ])
+
+            fig, ax = plt.subplots(figsize=(8, 4))
+            ax.axis('off')
+
+            tabela = ax.table(
+                cellText = dados,
+                colLabels = colunas,
+                loc = 'center',
+                cellLoc = 'center',
+                colWidths=[0.2, 0.2, 0.25, 0.25] 
+            )
+
+            tabela.auto_set_font_size(False)
+            tabela.set_fontsize(10)
+            tabela.scale(1.2, 1.8)
+
+            plt.title(f'Resultados de Complexidade: {self.__class__.__name__}', pad=20)
+            plt.tight_layout()
+            plt.show()                        
+    
     def run(self, print_info=True, plot=True):
         resultados_tabela = []
 
