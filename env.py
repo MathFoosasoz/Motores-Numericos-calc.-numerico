@@ -45,12 +45,12 @@ CONFIG_T:
     L: (tuple) Dimensões da placa Lx e Ly
     BORDER_TEMPS: (list) Temperaturas nas bordas, seguindo o padrão do ciclo trigonométrico (direita, cima, esquerda, baixo)
 
-    CIRCULAR_SOURCE_KNOWN_TEMP_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e temperatura da fonte circular (problema 2)
-    CIRCULAR_SOURCE_KNOWN_N_DICT: (dict) Raio, posição relativa a Lx, posição relativa a Ly e tupla das discretizações da fonte circular (problema 4)
+    CIRCULAR_SOURCE_KNOWN_TEMP_DICT: (dict) Raio, coordenadas relativas a Lx e Ly, e temperatura da fonte circular (problema 2)
+    CIRCULAR_SOURCE_KNOWN_N_DICT: (dict) Raio, coordenadas relativas a Lx e Ly e tupla das discretizações da fonte circular (problema 4)
     MULTI_N: (list) Tuplas contendo as várias discreções Nx e Ny para análise (problema 1)
 
 """
-N_CONFIG_T = (9, 5)
+N_CONFIG_T = (101, 51)
 CONFIG_T = {
 
     "CONDUCTIVITY": 0.2,
@@ -59,8 +59,8 @@ CONFIG_T = {
     "L": (0.02, 0.01),
     "BORDER_TEMPS": [30, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1)), 10, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1))],
 
-    "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.002, "x": 0.75, "y": 0.5, "T":30},
-    "CIRCULAR_SOURCE_KNOWN_N_DICT": { "R": 0.002, "x": 0.75, "y": 0.5, "N":(100,50)},
+    "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.002, "coords": (0.75, 0.5), "T": 30},
+    "CIRCULAR_SOURCE_KNOWN_N_DICT": { "R": 0.002, "coords": (0.75, 0.5), "N":(100,50)},
     "MULTI_N": [(21, 11), (41, 21), (81, 41), (161, 81), (321, 161),]
 
 }
