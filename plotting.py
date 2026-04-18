@@ -2,6 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+import matplotlib
+matplotlib.use('TkAgg')
+
 def PlotaRede(conec, Xno, p, q):
 
     edges = conec

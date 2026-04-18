@@ -69,6 +69,8 @@ CONFIG_T = {
     "MULTI_N": [(21, 11), (41, 21), (81, 41), (161, 81), (321, 161),],
 
     "TOLERANCE": 1e-5,
-    "MAX_ITERATIONS": 10000
+    "MAX_ITERATIONS": 10000,
+
+    "T_GOAL": 39.5
 
 }
