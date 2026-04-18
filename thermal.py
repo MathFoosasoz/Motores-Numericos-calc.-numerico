@@ -174,6 +174,83 @@ class Thermal():
         if plot:
             PlotaPlaca(*self.N, *self.L, temps, filename="img.png")
 
+class Thermal_P1(Thermal):
+    def __init__(self, config, method="cholesky"):
+        super().__init__(config, method)
+        self.MULTI_N = config["MULTI_N"]
+
+    def complexity_analysis(self, print_info=True, plot=True):
+        resultados = []
+
+        for n in self.MULTI_N:
+            self.N = n
+            Nx = n[0]
+            nunk = n[0] * n[1]
+
+            self.temps = [
+                30.0,                                           
+                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1)),  
+                10.0,                                           
+                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1))   
+            ]
+
+            # 1. Medir o tempo do método Esparso
+            self.method = "sparse"
+            t_start = time.time()
+            self.solve_system_sparse()
+            t_sparse = time.time() - t_start
+
+            # 2. Medir o tempo do método Denso (Cholesky)
+            # Trava de segurança: se for maior que 15.000 nós
+            if nunk < 15000:
+                self.method = "cholesky"
+                t_start = time.time()
+                self.solve_system_cholesky()
+                t_dense = time.time() - t_start
+            else:
+                t_dense = None
+
+            # Guardar os resultados
+            resultados.append({
+                "Malha": f"{n[0]}x{n[1]}",
+                "Nós": nunk,
+                "Esparsa (s)": t_sparse,
+                "Densa (s)": t_dense
+            })
+
+            if print_info:
+                print(f"Malha {n} analisada. Esparsa: {t_sparse:.4f}s | Densa: {'Pulada' if t_dense is None else f'{t_dense:.4f}s'}")
+                
+    def run(self, print_info=True, plot=True):
+        resultados_tabela = []
+
+        for n in self.MULTI_N:
+            self.N = n
+            Nx = n[0]
+            nunk = n[0] * n[1]
+            
+            # Configura as condições de contorno nominais do Exercício 1
+            self.temps = [
+                30.0,
+                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1)),
+                10.0,
+                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1))
+            ]
+
+            # Medição Esparsa (Executada para todas as malhas)
+            t_0 = time.time()
+            temps_final = self.solve_system_sparse()
+            # PLOTAGEM DENTRO DO LAÇO: Gera gráficos para cada discretização
+            if plot:
+                # 1. Mapa de Calor (Curvas de Nível)
+                PlotaPlaca(*self.N, *self.L, temps_final, Tmax=True)
+                
+                # 2. Temperatura no Eixo Central
+                kx = np.arange(self.N[0])
+                y_idx = (self.N[1] - 1) // 2
+                indices_centrais = [self.ij2n(y_idx, i) for i in kx]
+                temps_centrais = temps_final[indices_centrais]
+                PlotaEixoTemps(self.N[0], self.L[0], temps_centrais)
 
 class Thermal_P2(Thermal):
 
@@ -380,6 +457,105 @@ class Thermal_P2(Thermal):
                 temps_centrais = temps[Ic]
 
                 PlotaEixoTemps(self.N[0]-1, self.L[0], temps_centrais)
+
+class Thermal_P3(Thermal):
+    def __init__(self, config, method="sparse"):
+        super().__init__(config, method)
+        self.MULTI_N = config["MULTI_N"]
+
+    def k_cond(self, x, y):
+        #Função de condutividade variável k(x,y)
+        #k(x,y) = 0.2 + 0.05 * sin(3*pi*x/Lx) * sin(3*pi*y/Ly)
+        Lx, Ly = self.L
+        return 0.2 + 0.05 * math.sin(3 * math.pi * x / Lx) * math.sin(3 * math.pi * y / Ly)
+
+    def solve_system_sparse(self):
+        # Montagem esparsa com condutividade variável.
+        nunk = self.N[0] * self.N[1]
+        Nx, Ny = self.N
+        Lx, Ly = self.L
+        
+        # O problema pressupõe malha quadrada h = dx = dy.
+        # Para N = (101, 51) e L = (0.02, 0.01), dx = dy = 0.0002
+        h = Lx / (Nx - 1) 
+        h2 = h ** 2
+        
+        # Condições de borda nominais
+        self.temps = [
+            30.0,                                           
+            lambda kx: 10.0 + 20.0 * (kx / (Nx - 1)),       
+            10.0,                                           
+            lambda kx: 10.0 + 20.0 * (kx / (Nx - 1))        
+        ]
+        TR, TT, TL, TB = self.temps
+
+        rows, cols, data = [], [], []
+        b = np.zeros(nunk)
+
+        # i (linhas) corresponde ao eixo Y. j (colunas) corresponde ao eixo X.
+        for i in range(Ny): 
+            for j in range(Nx): 
+                Ic = self.ij2n(i, j)
+
+                # Coordenadas físicas do nó central
+                x = j * h
+                y = i * h
+
+                if j == Nx - 1:     
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TR
+                elif j == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TL
+                elif i == Ny - 1:   
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j)
+                elif i == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j)
+
+                else:
+                    # Mapeamento dos vizinhos:
+                    Ie = self.ij2n(i, j+1)  # Leste (+x)
+                    Iw = self.ij2n(i, j-1)  # Oeste (-x)
+                    In = self.ij2n(i+1, j)  # Norte (+y)
+                    Is = self.ij2n(i-1, j)  # Sul (-y)
+
+                    # Calcula a condutividade k nas faces (pontos médios)
+                    ke = self.k_cond(x + h/2, y)
+                    kw = self.k_cond(x - h/2, y)
+                    kn = self.k_cond(x, y + h/2)
+                    ks = self.k_cond(x, y - h/2)
+
+                    # Preenche os coeficientes na matriz esparsa
+                    kc = ke + kw + kn + ks
+                    rows.append(Ic); cols.append(Ic); data.append(kc)
+                    rows.append(Ic); cols.append(Ie); data.append(-ke)
+                    rows.append(Ic); cols.append(Iw); data.append(-kw)
+                    rows.append(Ic); cols.append(In); data.append(-kn)
+                    rows.append(Ic); cols.append(Is); data.append(-ks)
+
+                    # O lado direito agora é apenas f * h^2 (pois o k já está na matriz A)
+                    b[Ic] = h2 * self.f
+
+        A_sparse = sparse.coo_matrix((data, (rows, cols)), shape=(nunk, nunk)).tocsr()
+        return spsolve(A_sparse, b)
+
+    def run(self, print_info=False, plot=True):
+        for n in self.MULTI_N:
+            self.N = n
+            temps = self.solve_system_sparse()
+            
+            if print_info:
+                print(f"Malha {self.N[0]:>3}x{self.N[1]:<3} resolvida. T_max = {np.max(temps):.4f}°C")
+                
+            if plot:
+                PlotaPlaca(*self.N, *self.L, temps, Tmax=True)
+                
+                # Plot do eixo central
+                kx = np.arange(self.N[0])
+                y_idx = (self.N[1] - 1) // 2
+                indices_centrais = [self.ij2n(y_idx, i) for i in kx]
+                temps_centrais = temps[indices_centrais]
+                
+                PlotaEixoTemps(self.N[0], self.L[0], temps_centrais)
+
 
 
 class Thermal_P4(Thermal_P2):
