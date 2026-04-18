@@ -974,7 +974,7 @@ class Thermal_P3_Extra(Thermal):
             t_mont = time.time() - t0
 
             t1 = time.time()
-            _, T_max, n_iter, _ = sol.encontrar_Tc()
+            _, T_max, n_iter, _ = self.encontrar_Tc()
             t_resolv = time.time() - t1
 
             if print_info:
