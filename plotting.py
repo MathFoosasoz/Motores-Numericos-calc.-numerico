@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import math
 
 # import tkinter as tk
 # import matplotlib
@@ -178,16 +179,35 @@ def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None, Tmax=None)
     return
 
 
-def PlotaEixoTemps(N_eixo, L_eixo, T, filename=None):
-  x = np.linspace(0, L_eixo, N_eixo)
+def PlotaEixoTemps(N, L_eixo, T, filename=None):
+  x = np.linspace(0, L_eixo, N[0])
   y = T
 
   plt.plot(x, y)
-  plt.title("Temperatura no eixo central")
+  plt.title(f"Temperatura no eixo central, N = ({N[0]}, {N[1]})")
   plt.xlabel("Eixo placa (m)")
   plt.ylabel("Temperatura (ºC)")
 
+  max_temp = -1
+  max_temp_pos = -2
+
+  for index, temp in enumerate(y):
+    if temp> max_temp:
+       max_temp = temp
+       max_temp_pos = index
+
+  plt.scatter(x[max_temp_pos], max_temp) 
+
+  plt.annotate(f'Max: ({x[max_temp_pos]:.4f}, {max_temp:.2f})', 
+             xy=(x[max_temp_pos], max_temp),  
+             xytext=(5, 5),  
+             textcoords='offset points') 
+  
   plt.xticks([0, L_eixo/2, L_eixo])
+  max_box = int(f"{(max_temp +10):.0f}")
+  max_box = max_box + 10 - (max_box%10)
+  y_space = np.linspace(0, max_box, max_box//10 +1)
+  plt.yticks(y_space)
 
   if(filename is not None):
       plt.savefig(filename)
@@ -240,3 +260,23 @@ def plot_p1_extra_tolerance(tol_list, times_j, times_gs):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+def plot_p1_complex_analysis(dados, colunas):
+  fig, ax = plt.subplots(figsize=(8, 4))
+  ax.axis('off')
+
+  tabela = ax.table(
+      cellText = dados,
+      colLabels = colunas,
+      loc = 'center',
+      cellLoc = 'center',
+      colWidths=[0.2, 0.2, 0.25, 0.25] 
+  )
+
+  tabela.auto_set_font_size(False)
+  tabela.set_fontsize(10)
+  tabela.scale(1.2, 1.8)
+
+  plt.title(f'Resultados de Complexidade: Thermal_P1', pad=20)
+  plt.tight_layout()
+  plt.show() 

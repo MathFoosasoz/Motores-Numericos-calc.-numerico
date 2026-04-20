@@ -1,5 +1,5 @@
 import numpy as np
-from plotting import PlotaPlaca, PlotaEixoTemps, plot_problem4, plot_p1_extra_subdivisions, plot_p1_extra_tolerance
+from plotting import PlotaPlaca, PlotaEixoTemps, plot_problem4, plot_p1_extra_subdivisions, plot_p1_extra_tolerance, plot_p1_complex_analysis
 from scipy import sparse
 from scipy.sparse.linalg import spsolve
 import matplotlib.pyplot as plt
@@ -54,7 +54,6 @@ class Thermal():
         TR, TT, TL, TB = self.temps
 
         Atilde = A.copy()
-        b = b.copy()
 
         kx = np.arange(self.N[0])
         ky = np.arange(self.N[1])
@@ -69,8 +68,6 @@ class Thermal():
         for i in ky:
             boundary[self.ij2n(i,self.N[0]-1)] = TR
             boundary[self.ij2n(i,0)] = TL
-
-        # PEGUE Atilde AQ (PROBLEMA DIFÍCIL 1)!!! 
 
         for index, value in boundary.items():
             for i in range(nunk):
@@ -94,42 +91,52 @@ class Thermal():
     
         Temperature = np.linalg.solve(L.T, y)
         return Temperature
-    
+
     def solve_system_sparse(self):
-        nunk = self.N[0]*self.N[1]
-
-        A, b = self.assembly()
-
+        nunk = self.N[0] * self.N[1]
+        Nx, Ny = self.N
+        h2 = self.find_square_area()
+        
         TR, TT, TL, TB = self.temps
 
-        Atilde = A.copy()
-        btilde = b.copy()
+        rows, cols, data = [], [], []
+        b = np.zeros(nunk)
 
-        kx = np.arange(self.N[0])
-        ky = np.arange(self.N[1])
+        # i (linhas) corresponde ao eixo Y. j (colunas) corresponde ao eixo X.
+        
+        for i in range(Ny): 
+            for j in range(Nx): 
+                Ic = self.ij2n(i, j)
 
-        Iden = np.identity(nunk)
+                if j == Nx - 1:     
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TR
+                elif j == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TL
+                elif i == Ny - 1:   
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j)
+                elif i == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j)
 
-        # PAREDE DIREITA
-        Id = self.ij2n(ky, self.N[0] -1,)
-        Atilde[Id,:], btilde[Id] = Iden[Id,:], TR 
+                else:
+                    # Mapeamento dos vizinhos:
+                    Ie = self.ij2n(i, j+1)  # Leste (+x)
+                    Iw = self.ij2n(i, j-1)  # Oeste (-x)
+                    In = self.ij2n(i+1, j)  # Norte (+y)
+                    Is = self.ij2n(i-1, j)  # Sul (-y)
 
-        # PAREDE TOPO
-        It = self.ij2n(self.N[1] - 1, kx)
-        Atilde[It,:], btilde[It] = Iden[It,:], TT(kx)
 
-        # PAREDE ESQUERDA
-        Ie = self.ij2n(ky, 0)
-        Atilde[Ie,:], btilde[Ie] = Iden[Ie,:], TL
+                    # Preenche os coeficientes na matriz esparsa
+                    rows.append(Ic); cols.append(Ic); data.append(4.0)
+                    rows.append(Ic); cols.append(Ie); data.append(-1.0)
+                    rows.append(Ic); cols.append(Iw); data.append(-1.0)
+                    rows.append(Ic); cols.append(In); data.append(-1.0)
+                    rows.append(Ic); cols.append(Is); data.append(-1.0)
 
-        # PAREDE BAIXO
-        Ib = self.ij2n(0, kx)
-        Atilde[Ib,:], btilde[Ib] = Iden[Ib,:], TB(kx)
+                    # O lado direito agora é apenas f * h^2 (pois o k já está na matriz A)
+                    b[Ic] = (h2 * self.f)/self.K
 
-        Atildesp = sparse.csr_matrix(Atilde)
-        Temperature = spsolve(Atildesp, btilde)
-
-        return Temperature
+        A_sparse = sparse.coo_matrix((data, (rows, cols)), shape=(nunk, nunk)).tocsr()
+        return spsolve(A_sparse, b)
 
     def print_temp(self, temp):
         for i in range(self.N[1]-1, -1, -1):
@@ -159,16 +166,18 @@ class Thermal():
             print(f"Resultados para classe: {self.__class__.__name__}")
             print(f"Resolvido por: {self.method}")
             print(f"Número de discretizações: {self.N}")
-            print(f"solução das temperaturas do sistema:")
-            
+            print(f"Condutividade térmica utilizada: {self.K} W/mK")
+            print(f"Fonte térmica utilizada: {self.f:.1e} W/m³")
+
+            """print(f"solução das temperaturas do sistema:")
             if self.N[0]>21:
                 a = input("WARNING! Não é recomendado printar as temperaturas para mais de 20 discretizações horizontais. Ainda quer que imprima? (y/n) ")
             
             else:
                 a = "y"
-            
             if a in "yY":
                 self.print_temp(temps)
+            """
 
 
         if plot:
@@ -236,24 +245,7 @@ class Thermal_P1(Thermal):
                     tempo_denso
                 ])
 
-            fig, ax = plt.subplots(figsize=(8, 4))
-            ax.axis('off')
-
-            tabela = ax.table(
-                cellText = dados,
-                colLabels = colunas,
-                loc = 'center',
-                cellLoc = 'center',
-                colWidths=[0.2, 0.2, 0.25, 0.25] 
-            )
-
-            tabela.auto_set_font_size(False)
-            tabela.set_fontsize(10)
-            tabela.scale(1.2, 1.8)
-
-            plt.title(f'Resultados de Complexidade: {self.__class__.__name__}', pad=20)
-            plt.tight_layout()
-            plt.show()                        
+            plot_p1_complex_analysis(dados, colunas)                       
     
     def run(self, print_info=True, plot=True):
         resultados_tabela = []
@@ -284,7 +276,7 @@ class Thermal_P1(Thermal):
                 y_idx = (self.N[1] - 1) // 2
                 indices_centrais = [self.ij2n(y_idx, i) for i in kx]
                 temps_centrais = temps_final[indices_centrais]
-                PlotaEixoTemps(self.N[0], self.L[0], temps_centrais)
+                PlotaEixoTemps(self.N, self.L[0], temps_centrais)
 
 class Thermal_P2(Thermal):
 
@@ -384,7 +376,6 @@ class Thermal_P2(Thermal):
             boundary[self.ij2n(i,self.N[0]-1)] = TR
             boundary[self.ij2n(i,0)] = TL
 
-        # PEGUE Atilde AQ (PROBLEMA DIFÍCIL 1)!!! 
 
         for index, value in boundary.items():
             for i in range(nunk):
@@ -412,46 +403,61 @@ class Thermal_P2(Thermal):
     def solve_system_sparse(self):
         nunk = self.N[0]*self.N[1]
 
-        A, b = self.assembly()
-
+        Nx, Ny = self.N
+        h2 = self.find_square_area()
+        
         TR, TT, TL, TB = self.temps
 
-        Atilde = A.copy()
-        btilde = b.copy()
+        rows, cols, data = [], [], []
+        b = np.zeros(nunk)
+        self.get_index_inside_circus()
 
-        kx = np.arange(self.N[0])
-        ky = np.arange(self.N[1])
+        for i in range(Ny): 
+            for j in range(Nx): 
+                Ic = self.ij2n(i, j)
 
-        Iden = np.identity(nunk)
+                if j == Nx - 1:     
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TR
+                elif j == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TL
+                elif i == Ny - 1:   
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j)
+                elif i == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j)
 
-        # CÍRCULO
-        Ic = self.index_inside_circus
-        Atilde[Ic,:], btilde[Ic] = Iden[Ic,:], self.circle_temp 
+                elif Ic in self.index_inside_circus:
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = self.circle_temp
 
-        # PAREDE DIREITA
-        Id = self.ij2n(ky, self.N[0] -1,)
-        Atilde[Id,:], btilde[Id] = Iden[Id,:], TR 
+                else:
+                    # Mapeamento dos vizinhos:
+                    Ie = self.ij2n(i, j+1)  # Leste (+x)
+                    Iw = self.ij2n(i, j-1)  # Oeste (-x)
+                    In = self.ij2n(i+1, j)  # Norte (+y)
+                    Is = self.ij2n(i-1, j)  # Sul (-y)
 
-        # PAREDE TOPO
-        It = self.ij2n(self.N[1] - 1, kx)
-        Atilde[It,:], btilde[It] = Iden[It,:], TT(kx)
 
-        # PAREDE ESQUERDA
-        Ie = self.ij2n(ky, 0)
-        Atilde[Ie,:], btilde[Ie] = Iden[Ie,:], TL
+                    # Preenche os coeficientes na matriz esparsa
+                    rows.append(Ic); cols.append(Ic); data.append(4.0)
+                    rows.append(Ic); cols.append(Ie); data.append(-1.0)
+                    rows.append(Ic); cols.append(Iw); data.append(-1.0)
+                    rows.append(Ic); cols.append(In); data.append(-1.0)
+                    rows.append(Ic); cols.append(Is); data.append(-1.0)
 
-        # PAREDE BAIXO
-        Ib = self.ij2n(0, kx)
-        Atilde[Ib,:], btilde[Ib] = Iden[Ib,:], TB(kx)
+                    b[Ic] = (h2 * self.f)/self.K
 
-        Atildesp = sparse.csr_matrix(Atilde)
-        Temperature = spsolve(Atildesp, btilde)
+        A_sparse = sparse.coo_matrix((data, (rows, cols)), shape=(nunk, nunk)).tocsr()
+        return spsolve(A_sparse, b)
 
-        return Temperature
     
     def run(self, print_info = False, plot = False):
 
         preserve_self_N = self.N
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Resolvido por: {self.method}")
+            print(f"Raio do círculo: {self.circle_radius} m")
+            print(f"Temperatura no círculo: {self.circle_temp} °C")
 
         for n in preserve_self_N:
             self.N = n
@@ -465,10 +471,7 @@ class Thermal_P2(Thermal):
             else:
                 raise ValueError()
 
-            if print_info:
-                print(f"Resultados para classe: {self.__class__.__name__}")
-                print(f"Resolvido por: {self.method}")
-                print(f"Número de discretizações: {self.N}")
+                """
                 print(f"Solução das temperaturas do sistema:")
                 
                 if self.N[0]>21:
@@ -479,18 +482,18 @@ class Thermal_P2(Thermal):
                 
                 if a in "yY":
                     self.print_temp(temps)
-
+                """
 
             if plot:
                 PlotaPlaca(*self.N, *self.L, temps, Tmax= True)
 
-                kx = np.arange(self.N[0]-1)
+                kx = np.arange(self.N[0])
                 y = (self.N[1]-1)//2
 
                 Ic = self.ij2n(y, kx)
                 temps_centrais = temps[Ic]
 
-                PlotaEixoTemps(self.N[0]-1, self.L[0], temps_centrais)
+                PlotaEixoTemps(self.N, self.L[0], temps_centrais)
 
 class Thermal_P3(Thermal):
     def __init__(self, config, method="sparse"):
@@ -588,8 +591,7 @@ class Thermal_P3(Thermal):
                 indices_centrais = [self.ij2n(y_idx, i) for i in kx]
                 temps_centrais = temps[indices_centrais]
                 
-                PlotaEixoTemps(self.N[0], self.L[0], temps_centrais)
-
+                PlotaEixoTemps(self.N, self.L[0], temps_centrais)
 
 class Thermal_P4(Thermal_P2):
 
@@ -599,15 +601,14 @@ class Thermal_P4(Thermal_P2):
         self.N = config["N"]
 
     def definir_reta(self):
-        import numpy as np
 
         original_TC = self.circle_temp
 
         self.circle_temp = 0
-        T0 = self.solve_system_sparse()
+        T0 = self.solve_system_sparse() if self.method == "sparse" else self.solve_system_cholesky()
 
         self.circle_temp = 1
-        T1 = self.solve_system_sparse()
+        T1 = self.solve_system_sparse() if self.method == "sparse" else self.solve_system_cholesky()
 
         self.circle_temp = original_TC
 
@@ -624,23 +625,28 @@ class Thermal_P4(Thermal_P2):
 
         return TC_values, T_max, T_mean
 
-    def run(self, plot=False):
+    def run(self, print_info=False, plot=False):
 
         TC, T_max, T_mean = self.definir_reta()
+
+        if print_info:
+            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f"Resolvido por: {self.method}")
+            print(f"Número de discretizações: {self.N}")
 
         if plot:
             plot_problem4(TC, T_max, T_mean, filename="p4.png")
 
 class Thermal_P5(Thermal_P2):
 
-    def __init__(self, config, k_node, method="sparse"):
+    def __init__(self, config, method="sparse"):
         super().__init__(config, method)
         self.config = config
-        self.k_node = k_node
+        self.k_node = config["K_NODE"]
         self.N = config["N"]
 
     def solve(self):
-        import numpy as np
+
 
         def make_config(TR, TC):
             cfg = self.config.copy()
@@ -1055,19 +1061,19 @@ class Thermal_P3_Extra(Thermal):
             b[idx] = T_C
         return A_lil.tocsr(), b
 
-    def encontrar_Tc(self, beta=1.0, tol=1e-4, max_it=100, T_C_init=None):
-        T_C = T_C_init if T_C_init is not None else self.T_alvo
+    def encontrar_Tc(self, beta=1.0, tol=1e-4, max_it=1000, T_C_init=None):
+        Tc = T_C_init if T_C_init is not None else self.T_alvo
         T_max_final, n_iter, campo = None, 0, None
         for k in range(max_it):
-            A_upd, b_upd = self._aplicar_condicao_circulo(T_C)
+            A_upd, b_upd = self._aplicar_condicao_circulo(Tc)
             campo = spsolve(A_upd, b_upd)
             T_max_final = float(np.max(campo))
             erro = T_max_final - self.T_alvo
             n_iter = k + 1
             if abs(erro) < tol:
                 break
-            T_C -= beta * erro
-        return T_C, T_max_final, n_iter, campo
+            Tc -= beta * erro
+        return Tc, T_max_final, n_iter, campo
     
     def run(self, print_info, plot):
 
@@ -1080,7 +1086,7 @@ class Thermal_P3_Extra(Thermal):
             self.N = n
 
             t0 = time.time()
-            sol = self.identificar_nos_circulo()
+            self.identificar_nos_circulo()
             t_mont = time.time() - t0
 
             t1 = time.time()

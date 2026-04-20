@@ -16,7 +16,7 @@ def main():
     #test_cholesky = Thermal(config_t, method = "cholesky")
     #test_cholesky.run(print_info = True, plot= True)
 
-    #FUNCIONA!!! (verificar tempo de execução)
+    #FUNCIONA!!! 
     #test_P1 = Thermal_P1(config_t, method="sparse")
     #test_P1.complexity_analysis(print_info=True, plot=True)
     #test_P1.run(print_info = True, plot = True)

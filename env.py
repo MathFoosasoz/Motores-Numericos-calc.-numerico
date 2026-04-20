@@ -72,6 +72,8 @@ CONFIG_T = {
     "MAX_ITERATIONS": 15000,
     "MULTI_T": [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11],
 
-    "T_GOAL": 39.5
+    "T_GOAL": 39.5,
+
+    "K_NODE":233
 
 }
