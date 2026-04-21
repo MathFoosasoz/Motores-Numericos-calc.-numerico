@@ -55,14 +55,14 @@ CONFIG_T:
     --(P1 EXTRA)--
 
 """
-N_CONFIG_T = (101, 51)
+
 CONFIG_T = {
 
-    "CONDUCTIVITY": 0.2,
-    "SOURCE": 1000000,
-    "N": N_CONFIG_T,
+    "CONDUCTIVITY": 0.25,
+    "SOURCE": 500000,
+    "N": (101, 51),
     "L": (0.02, 0.01),
-    "BORDER_TEMPS": [30, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1)), 10, lambda x: 10 + 20*(x/(N_CONFIG_T[0] - 1))],
+    "BORDER_TEMPS": [30, lambda x,n: 10 + 20*(x/(n[0] - 1)), 10, lambda x,n: 10 + 20*(x/(n[0] - 1))],
 
     "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.002, "coords": (0.75, 0.5), "T": 30},
     "CIRCULAR_SOURCE_KNOWN_N_DICT": { "R": 0.002, "coords": (0.75, 0.5), "N":(100,50)},

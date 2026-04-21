@@ -62,8 +62,8 @@ class Thermal():
         boundary={}
 
         for i in kx:
-            boundary[self.ij2n(self.N[1]-1,i)] = TT(i)
-            boundary[self.ij2n(0,i)] = TB(i)
+            boundary[self.ij2n(self.N[1]-1,i)] = TT(i, self.N)
+            boundary[self.ij2n(0,i)] = TB(i, self.N)
 
         for i in ky:
             boundary[self.ij2n(i,self.N[0]-1)] = TR
@@ -113,9 +113,9 @@ class Thermal():
                 elif j == 0:               
                     rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TL
                 elif i == Ny - 1:   
-                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j)
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j, self.N)
                 elif i == 0:               
-                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j)
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j, self.N)
 
                 else:
                     # Mapeamento dos vizinhos:
@@ -193,15 +193,7 @@ class Thermal_P1(Thermal):
 
         for n in self.MULTI_N:
             self.N = n
-            Nx = n[0]
             nunk = n[0] * n[1]
-
-            self.temps = [
-                30.0,                                           
-                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1)),  
-                10.0,                                           
-                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1))   
-            ]
 
             # 1. Medir o tempo do método Esparso
             self.method = "sparse"
@@ -254,15 +246,7 @@ class Thermal_P1(Thermal):
             self.N = n
             Nx = n[0]
             nunk = n[0] * n[1]
-            
-            # Configura as condições de contorno nominais do Exercício 1
-            self.temps = [
-                30.0,
-                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1)),
-                10.0,
-                lambda kx, N=Nx: 10.0 + 20.0 * (kx / (N - 1))
-            ]
-
+        
             # Medição Esparsa (Executada para todas as malhas)
             t_0 = time.time()
             temps_final = self.solve_system_sparse()
@@ -281,7 +265,7 @@ class Thermal_P1(Thermal):
 class Thermal_P2(Thermal):
 
     def __init__(self, config, method = "cholesky"):
-        super().__init__(config)
+        super().__init__(config, method)
 
         self.N = config["MULTI_N"]
         circle_dict = config["CIRCULAR_SOURCE_KNOWN_TEMP_DICT"]
@@ -369,8 +353,8 @@ class Thermal_P2(Thermal):
             boundary[i] = self.circle_temp
 
         for i in kx:
-            boundary[self.ij2n(self.N[1]-1,i)] = TT(i)
-            boundary[self.ij2n(0,i)] = TB(i)
+            boundary[self.ij2n(self.N[1]-1,i)] = TT(i, self.N)
+            boundary[self.ij2n(0,i)] = TB(i, self.N)
 
         for i in ky:
             boundary[self.ij2n(i,self.N[0]-1)] = TR
@@ -421,9 +405,9 @@ class Thermal_P2(Thermal):
                 elif j == 0:               
                     rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TL
                 elif i == Ny - 1:   
-                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j)
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j, self.N)
                 elif i == 0:               
-                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j)
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j, self.N)
 
                 elif Ic in self.index_inside_circus:
                     rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = self.circle_temp
@@ -517,13 +501,6 @@ class Thermal_P3(Thermal):
         h = Lx / (Nx - 1) 
         h2 = h ** 2
         
-        # Condições de borda nominais
-        self.temps = [
-            30.0,                                           
-            lambda kx: 10.0 + 20.0 * (kx / (Nx - 1)),       
-            10.0,                                           
-            lambda kx: 10.0 + 20.0 * (kx / (Nx - 1))        
-        ]
         TR, TT, TL, TB = self.temps
 
         rows, cols, data = [], [], []
@@ -543,9 +520,9 @@ class Thermal_P3(Thermal):
                 elif j == 0:               
                     rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TL
                 elif i == Ny - 1:   
-                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j)
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j, self.N)
                 elif i == 0:               
-                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j)
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j, self.N)
 
                 else:
                     # Mapeamento dos vizinhos:
@@ -732,8 +709,8 @@ class Thermal_P1_extra(Thermal):
         boundary={}
 
         for i in kx:
-            boundary[self.ij2n(self.N[1]-1,i)] = TT(i)
-            boundary[self.ij2n(0,i)] = TB(i)
+            boundary[self.ij2n(self.N[1]-1,i)] = TT(i, self.N)
+            boundary[self.ij2n(0,i)] = TB(i, self.N)
 
         for i in ky:
             boundary[self.ij2n(i,self.N[0]-1)] = TR
@@ -915,8 +892,8 @@ class Thermal_P2_Extra(Thermal_P1_extra):
         
         #mesma lógica de aplicar as condições de contorno do solve_system_cholesky
         for i in kx:
-            boundary[self.ij2n(self.N[1]-1, i)] = self.temps[1](i) 
-            boundary[self.ij2n(0, i)] = self.temps[3](i)     
+            boundary[self.ij2n(self.N[1]-1, i)] = self.temps[1](i, self.N) 
+            boundary[self.ij2n(0, i)] = self.temps[3](i, self.N)     
 
         for i in ky:
             boundary[self.ij2n(i, self.N[0]-1)] = self.temps[0]   
@@ -992,78 +969,71 @@ class Thermal_P2_Extra(Thermal_P1_extra):
         plt.show()
         return ani
 
-class Thermal_P3_Extra(Thermal):
- 
+class SolucionadorTermicoIterativo(Thermal):
     def __init__(self, config):
         super().__init__(config)
-        self.T_alvo  = config["T_GOAL"]
-        self.multi_n = config["MULTI_N_EXTRA_3"]
- 
+
+        self.T_alvo = config["T_GOAL"]
+        self.nos_circulo = None
+        self.multi_n = config["MULTI_N"]
+
         circle_dict = config["CIRCULAR_SOURCE_KNOWN_TEMP_DICT"]
         self.circle_radius = circle_dict["R"]
-        self.circle_coords = circle_dict["coords"]   
- 
-        self.nos_circulo = None
- 
-        self.A_base = None
-        self.b_base = None
- 
-    def _rebuild_base_system(self):
+        self.circle_coords = circle_dict["coords"]
 
+        self.A_base, self.b_base = self._montar_esparso()
+
+    def _montar_esparso(self):
         Nx, Ny = self.N
         hx = self.L[0] / (Nx - 1)
         hy = self.L[1] / (Ny - 1)
-        h2 = hx * hy                    
+        rx, ry = self.K / hx**2, self.K / hy**2
+        diag = 2 * rx + 2 * ry
         TR, TT, TL, TB = self.temps
- 
+
         linhas, cols, vals = [], [], []
         b = np.zeros(Nx * Ny)
- 
+
         for j in range(Ny):
             for i in range(Nx):
                 idx = self.ij2n(j, i)
- 
                 if i == 0 or i == Nx - 1 or j == 0 or j == Ny - 1:
                     linhas.append(idx); cols.append(idx); vals.append(1.0)
-                    if   i == 0:       b[idx] = TL
-                    elif i == Nx - 1:  b[idx] = TR
-                    elif j == 0:       b[idx] = TB(i) if callable(TB) else TB
-                    else:              b[idx] = TT(i) if callable(TT) else TT
+                    if   i == 0:      b[idx] = TL
+                    elif i == Nx - 1: b[idx] = TR
+                    elif j == 0:      b[idx] = TB(i, self.N) if callable(TB) else TB
+                    else:             b[idx] = TT(i, self.N) if callable(TT) else TT
                 else:
-                    Ie = self.ij2n(j,   i+1)
-                    Iw = self.ij2n(j,   i-1)
-                    In = self.ij2n(j+1, i  )
-                    Is = self.ij2n(j-1, i  )
- 
-                    linhas += [idx] * 5
-                    cols   += [idx, Ie, Iw, In, Is]
-                    vals   += [4.0, -1.0, -1.0, -1.0, -1.0]   
-                    b[idx]  = (h2 * self.f) / self.K           
- 
-        self.A_base = sparse.coo_matrix(
-            (vals, (linhas, cols)), shape=(Nx * Ny, Nx * Ny)
-        ).tocsr()
-        self.b_base = b
- 
-    def identificar_nos_circulo(self):
+                    Ic = idx
+                    Ie, Iw = self.ij2n(j, i+1), self.ij2n(j, i-1)
+                    In, Is = self.ij2n(j+1, i), self.ij2n(j-1, i)
+                    linhas += [Ic] * 5
+                    cols   += [Ic, Ie, Iw, In, Is]
+                    vals   += [diag, -rx, -rx, -ry, -ry]
+                    b[Ic]   = self.f
 
+        self.A_base = sparse.coo_matrix((vals, (linhas, cols)),shape=(Nx*Ny, Nx*Ny)).tocsr() 
+        self.b_base = b
+
+        return self.A_base, self.b_base
+
+    def identificar_nos_circulo(self):
         Nx, Ny = self.N
         hx = self.L[0] / (Nx - 1)
         hy = self.L[1] / (Ny - 1)
-        cx_rel, cy_rel = self.circle_coords 
-        cx = cx_rel * self.L[0]
-        cy = cy_rel * self.L[1]  
- 
         R2 = self.circle_radius ** 2
+
+        cx = self.circle_coords[0]*self.L[0]
+        cy = self.circle_coords[1]*self.L[1]
+
         self.nos_circulo = [
             self.ij2n(j, i)
             for j in range(1, Ny - 1)
             for i in range(1, Nx - 1)
             if (i * hx - cx) ** 2 + (j * hy - cy) ** 2 <= R2
         ]
- 
-    def _aplicar_condicao_circulo(self, T_C):
 
+    def _aplicar_condicao_circulo(self, T_C):
         A_lil = self.A_base.tolil()
         b = self.b_base.copy()
         for idx in self.nos_circulo:
@@ -1071,52 +1041,39 @@ class Thermal_P3_Extra(Thermal):
             A_lil.data[idx] = [1.0]
             b[idx] = T_C
         return A_lil.tocsr(), b
- 
-    def encontrar_Tc(self, beta=1.0, tol=1e-4, max_it=1000, T_C_init=None):
 
-        Tc = T_C_init if T_C_init is not None else self.T_alvo
-        T_max_final = None
-        campo       = None
- 
+    def encontrar_Tc(self, beta=1.0, tol=1e-4, max_it=500, T_C_init=None):
+        T_C = T_C_init if T_C_init is not None else self.T_alvo
+        T_max_final, n_iter, campo = None, 0, None
+
         for k in range(max_it):
-            A_upd, b_upd = self._aplicar_condicao_circulo(Tc)
-            campo        = spsolve(A_upd, b_upd)
-            T_max_final  = float(np.max(campo))
-            erro         = T_max_final - self.T_alvo
- 
+            A_upd, b_upd = self._aplicar_condicao_circulo(T_C)
+            campo = spsolve(A_upd, b_upd)
+            T_max_final = float(np.max(campo))
+            erro = T_max_final - self.T_alvo
+            n_iter = k + 1
             if abs(erro) < tol:
-                return Tc, T_max_final, k + 1, campo
- 
-            Tc -= beta * erro
+                break
+            T_C -= beta * erro
 
-        print(f"  WARNING: encontrar_Tc did not converge in {max_it} iterations. "
-              f"Residual = {abs(T_max_final - self.T_alvo):.4e}")
-        return Tc, T_max_final, max_it, campo
- 
-    def run(self, print_info=True, plot=False):
-        if print_info:
-            cab = (f"{'Nx':>6} {'Ny':>6} {'N_nos':>8} "
-                   f"{'t_mont(s)':>11} {'t_resolv(s)':>12} "
-                   f"{'Iters':>7} {'T_max(°C)':>10} {'T_C(°C)':>10}")
-            print("\n" + cab)
-            print("-" * len(cab))
- 
+        return T_C, T_max_final, n_iter, campo
+
+    def run(self):
+        cab = f"{'Nx':>6} {'Ny':>6} {'N_nos':>8} {'t_mont(s)':>11} {'t_resolv(s)':>12} {'Iters':>7} {'T_max(C)':>10}   {'T_C(C)':>10}"
+        print("\n" + cab)
+        print("-" * len(cab))
+
         for n in self.multi_n:
             self.N = n
- 
-            t0 = time.perf_counter()
-            self._rebuild_base_system()       
+
+            t0 = time.time()
+            self._montar_esparso()
             self.identificar_nos_circulo()
-            t_mont = time.perf_counter() - t0
- 
-            t1 = time.perf_counter()
-            Tc_conv, T_max, n_iter, campo = self.encontrar_Tc()
-            t_resolv = time.perf_counter() - t1
- 
-            if print_info:
-                print(f"{n[0]:>6} {n[1]:>6} {n[0]*n[1]:>8} "
-                      f"{t_mont:>11.4f} {t_resolv:>12.4f} "
-                      f"{n_iter:>7} {T_max:>10.4f} {Tc_conv:>10.4f}")
- 
-            if plot:
-                PlotaPlaca(*self.N, *self.L, campo, Tmax=True)
+            t_mont = time.time() - t0
+
+            t1 = time.time()
+            T_c, T_max, n_iter, _ = self.encontrar_Tc()
+            t_resolv = time.time() - t1
+
+            print(f"{n[0]:>6} {n[1]:>6} {n[0]*n[1]:>8} {t_mont:>11.4f} {t_resolv:>12.4f} {n_iter:>7} {T_max:>10.4f}   {T_c:>10.4f}")
+
