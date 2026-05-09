@@ -6,7 +6,6 @@ import time
 import math
 
 
-
 class Mechanic():
 
     def __init__(self, config):
@@ -105,4 +104,14 @@ class Mechanic():
 
  
         return freq, omega, modes
+    
+    def run(self, print_info=False, plot=False):
+        freq, omega, modes = self.SolveEigenWithoutForce()
+
+        if print_info:
+            print("Solução da membrana elástica:")
+            print(f"N: {self.N[0]} x {self.N[1]}")
+            print(f"freq: {freq}\n\n")
+            print(f"omega: {omega}\n\n")
+            print(f"modes: {modes}\n\n")
 
