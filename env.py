@@ -78,3 +78,18 @@ CONFIG_T = {
     "K_NODE":233
 
 }
+
+
+CONFIG_M = {
+
+    "N": (51, 51),
+    "R": 0.004,
+
+    "TENSION": 200,
+    "DENSITY": 900,
+    "THICKNESS":0.0001,
+
+    "N_MODES":8,
+    "TOLERANCE": 1e-8
+
+}
