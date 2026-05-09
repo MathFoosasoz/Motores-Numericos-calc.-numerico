@@ -1,6 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
+import math
+
+# import tkinter as tk
+# import matplotlib
+# matplotlib.use('TkAgg')
 
 def PlotaRede(conec, Xno, p, q):
 
@@ -133,3 +138,145 @@ def PlotaMaxPressao(pressures, time_constants):
   plt.ylabel("Pressão (Pa)")
   plt.title("Pressão máxima na rede de acordo com o tempo")
   plt.grid(True)
+
+
+def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None, Tmax=None):
+    x = np.linspace(0.0, Lx, Nx)
+    y = np.linspace(0.0, Ly, Ny)
+
+    X, Y = np.meshgrid(x, y)
+
+    Z = np.copy(T).reshape(Ny, Nx)
+
+    title = f'Contours of temperature, N=({Nx}, {Ny})'
+
+    if Tmax is not None:
+       T_max = np.max(T)
+       title += f', Tmax = {T_max:.2f}ºC'
+
+    if(flag_type == 'contour'):
+      fig, ax = plt.subplots(figsize=(6,6))
+      ax.set_aspect('equal')
+      ax.set(xlabel='x', ylabel='y', title=f'Contours of temperature, N=({Nx}, {Ny})')
+      im = ax.contourf(X, Y, Z, 20, cmap='jet')
+      im2 = ax.contour(X, Y, Z, 20, linewidths=0.25, colors='k')
+      fig.colorbar(im, ax=ax, orientation='horizontal')
+
+    elif(flag_type == 'surface'):
+      fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+      ax.set_aspect('equal')
+      surf = ax.plot_surface(X, Y, Z, cmap='jet')
+      fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5) 
+    
+    plt.xticks([0, Lx/2, Lx])
+    plt.yticks([0, Ly/2, Ly])
+
+    if(filename is not None):
+      plt.savefig(filename)
+
+    plt.show()
+
+    return
+
+
+def PlotaEixoTemps(N, L_eixo, T, filename=None):
+  x = np.linspace(0, L_eixo, N[0])
+  y = T
+
+  plt.plot(x, y)
+  plt.title(f"Temperatura no eixo central, N = ({N[0]}, {N[1]})")
+  plt.xlabel("Eixo placa (m)")
+  plt.ylabel("Temperatura (ºC)")
+
+  max_temp = -1
+  max_temp_pos = -2
+
+  for index, temp in enumerate(y):
+    if temp> max_temp:
+       max_temp = temp
+       max_temp_pos = index
+
+  plt.scatter(x[max_temp_pos], max_temp) 
+
+  plt.annotate(f'Max: ({x[max_temp_pos]:.4f}, {max_temp:.2f})', 
+             xy=(x[max_temp_pos], max_temp),  
+             xytext=(5, 5),  
+             textcoords='offset points') 
+  
+  plt.xticks([0, L_eixo/2, L_eixo])
+  max_box = int(f"{(max_temp +10):.0f}")
+  max_box = max_box + 10 - (max_box%10)
+  y_space = np.linspace(0, max_box, max_box//10 +1)
+  plt.yticks(y_space)
+
+  if(filename is not None):
+      plt.savefig(filename)
+
+  plt.show() 
+
+
+def plot_problem4(TC, Tmax, Tmean, filename=None):
+    import matplotlib.pyplot as plt
+
+    plt.figure(figsize=(8,5))
+    plt.plot(TC, Tmax, label="Tmax")
+    plt.plot(TC, Tmean, label="Tmean")
+
+    plt.xlabel("Tc (°C)")
+    plt.ylabel("Temperatura (°C)")
+    plt.title("Temperatura máxima e média vs Tc")
+
+    plt.legend()
+    plt.grid(True)
+
+    if filename:
+        plt.savefig(filename)
+
+    plt.show()
+    
+    
+def plot_p1_extra_subdivisions(nodes_list, times_j, times_gs):
+    plt.figure(figsize=(8, 5))
+    plt.plot(nodes_list, times_j, marker='o', color='blue', label='Jacobi')
+    plt.plot(nodes_list, times_gs, marker='s', color='orange', label='Gauss-Seidel')
+    
+    plt.title("Tempo de Execução vs Subdivisões")
+    plt.xlabel("Subdivisões (Total de Nós)")
+    plt.ylabel("Tempo (s)")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_p1_extra_tolerance(tol_list, times_j, times_gs):
+    plt.figure(figsize=(8, 5))
+    plt.plot(tol_list, times_j, marker='o', color='blue', label='Jacobi')
+    plt.plot(tol_list, times_gs, marker='s', color='orange', label='Gauss-Seidel')
+    
+    plt.title("Tempo de Execução vs Tolerância")
+    plt.xlabel("Tolerância")
+    plt.ylabel("Tempo (s)")
+    plt.xscale('log') 
+    plt.gca().invert_xaxis() 
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def plot_p1_complex_analysis(dados, colunas):
+  fig, ax = plt.subplots(figsize=(8, 4))
+  ax.axis('off')
+
+  tabela = ax.table(
+      cellText = dados,
+      colLabels = colunas,
+      loc = 'center',
+      cellLoc = 'center',
+      colWidths=[0.2, 0.2, 0.25, 0.25] 
+  )
+
+  tabela.auto_set_font_size(False)
+  tabela.set_fontsize(10)
+  tabela.scale(1.2, 1.8)
+
+  plt.title(f'Resultados de Complexidade: Thermal_P1', pad=20)
+  plt.tight_layout()
+  plt.show() 
