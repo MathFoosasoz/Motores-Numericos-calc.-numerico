@@ -795,8 +795,10 @@ class Thermal_P1_extra(Thermal):
         if print_info:
             print(f"Resultados para classe: {self.__class__.__name__}")
             print(f"Resolvido por: {self.method}")
+
+            """
             print("solução das temperaturas do sistema:")
-            
+        
             if self.N[0] > 21:
                 a = input("WARNING! Não é recomendado printar as temperaturas para mais de 20 discretizações horizontais. Ainda quer que imprima? (y/n) ")
             else:
@@ -804,6 +806,7 @@ class Thermal_P1_extra(Thermal):
             
             if a in "yY":
                 self.print_temp(temps)
+            """
 
         if plot:
             from plotting import PlotaPlaca 
