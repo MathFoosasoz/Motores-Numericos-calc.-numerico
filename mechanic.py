@@ -136,7 +136,7 @@ class Mechanic_P2(Mechanic):
         ax.axis('tight')
         ax.axis('off')
 
-        columns = ["Grade (NxN)"] + [f"f{i+1} (Hz)" for i in range(10)]
+        columns = ["Grade NxN"] + [f"f{i+1} (Hz)" for i in range(10)]
 
         table = ax.table(cellText=data, colLabels=columns, loc='center', cellLoc='center')
         
