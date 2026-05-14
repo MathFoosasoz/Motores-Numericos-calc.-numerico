@@ -115,3 +115,62 @@ class Mechanic():
             print(f"omega: {omega}\n\n")
             print(f"modes: {modes}\n\n")
 
+
+class Mechanic_P2(Mechanic):
+    def __init__(self, config):
+        super().__init__(config)
+
+    
+    def plot_convergence_table_image(self, discretizations):
+        data = []
+        for n_size in discretizations:
+            self.N = (n_size, n_size)
+            freqs, _, _ = self.SolveEigenWithoutForce()
+            
+            row = [f"{n_size}x{n_size}"]
+            for i in range(10):
+                row.append(f"{freqs[i]:.1f}")
+            data.append(row)
+
+        fig, ax = plt.subplots(figsize=(14, 6))
+        ax.axis('tight')
+        ax.axis('off')
+
+        columns = ["Grade (NxN)"] + [f"f{i+1} (Hz)" for i in range(10)]
+
+        table = ax.table(cellText=data, colLabels=columns, loc='center', cellLoc='center')
+        
+        table.auto_set_font_size(False)
+        table.set_fontsize(9) 
+        table.scale(1.1, 2.5) 
+        
+        for (row, col), cell in table.get_celld().items():
+            if row == 0:
+                cell.set_text_props(weight='bold')
+
+        plt.title(f"Tabela de Convergência (10 Modos) - Membrana Circular (R={self.R*100} cm)", pad=30, fontsize=14)
+        
+        plt.show()
+    
+
+    
+    def plot_modes(self, discretizations):
+        for n_size in discretizations:
+            self.N = (n_size, n_size)
+            
+            freq, _, modes = self.SolveEigenWithoutForce()
+            N0, N1 = self.N
+            
+            plt.figure(figsize=(15, 7))
+            plt.suptitle(f"Modos de Vibração - Grade {N0}x{N1}", fontsize=14)
+            
+            for i in range(min(10, self.n_modes)):
+                plt.subplot(2, 5, i + 1)
+                mode_reshaped = modes[:, i].reshape((N1, N0))
+                
+                plt.contourf(mode_reshaped, cmap='RdYlBu', levels=20)
+                plt.title(f"Modo {i+1}\n{freq[i]:.1f} Hz")
+                plt.axis('off')
+            
+            plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+            plt.show() 
