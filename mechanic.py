@@ -173,4 +173,40 @@ class Mechanic_P2(Mechanic):
                 plt.axis('off')
             
             plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-            plt.show() 
+            plt.show() class Mechanic_P4(Mechanic):
+
+    def __init__(self, config):
+        super().__init__(config)
+
+        #gera o vetor V definido pelo problema (*****atemporal*****) (sem o termo cosseno)
+    def get_spatial_force_vector(self):
+        
+        N0, N1 = self.N
+        dx = 2 / (N0 - 1)
+        dy = 2 / (N1 - 1)
+        
+        V = np.zeros(N0 * N1)
+        
+        for i in range(N1):
+            for j in range(N0):
+                x = (j * dx) - 1
+                y = (i * dy) - 1
+                
+                n = self.ij2n(i, j)
+
+                V[n] = (x - 0.5)**2 + (y - 0.5)**2
+
+        index_out = self.get_index_outside_circus()
+        V[index_out] = 0.0
+        
+        return V
+        
+    def compute_modal_projection(self):
+
+        freq, omega, modes = self.SolveEigenWithoutForce()
+
+        V = self.get_spatial_force_vector()
+
+        c = modes.T @ V
+
+        return c, V, modes, freq 
