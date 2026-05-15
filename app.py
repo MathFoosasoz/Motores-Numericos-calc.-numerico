@@ -22,18 +22,10 @@ def main():
     # Plota os modos sequencialmente
     test_p2.plot_modes(config_m["MULTI_N"])
 
-    
 
     # ==================== PROBLEMA 4 =========================
     test_p4 = Mechanic_P4(config_m)
-    coefs, V_vector, phi, f_naturais = test_p4.compute_modal_projection()
-    print("RESULTADO DA PROJEÇÃO MODAL:")
-    for i in range (len(coefs)):
-        print(f"Modo {i+1} ({f_naturais[i]:.2f} Hz): Coeficiente {i}: {coefs[i]:.6f}")
-    
-    print("REPRESENTAÇÃO DO TERMO FORÇANTE NA BASE MODAL:")
-    for i in range(len(coefs)):
-        print(f"  Termo {i+1}: ({coefs[i]:.6f}) * Phi_{i+1} * cos(omega_s * t)")
+    test_p4.run(print_info = True, plot = False)
     
     return
 

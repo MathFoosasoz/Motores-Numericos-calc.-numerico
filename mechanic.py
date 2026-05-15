@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import time
 import math
 
+from plotting import plot_membrane_modes
+
 
 class Mechanic():
 
@@ -115,6 +117,10 @@ class Mechanic():
             print(f"omega: {omega}\n\n")
             print(f"modes: {modes}\n\n")
 
+        if plot:
+            plot_membrane_modes(self.N, self.n_modes, modes, freq)
+            plt.show()
+
 
 class Mechanic_P2(Mechanic):
     def __init__(self, config):
@@ -152,28 +158,18 @@ class Mechanic_P2(Mechanic):
         
         plt.show()
     
-
     
     def plot_modes(self, discretizations):
         for n_size in discretizations:
             self.N = (n_size, n_size)
             
             freq, _, modes = self.SolveEigenWithoutForce()
-            N0, N1 = self.N
-            
-            plt.figure(figsize=(15, 7))
-            plt.suptitle(f"Modos de Vibração - Grade {N0}x{N1}", fontsize=14)
-            
-            for i in range(min(10, self.n_modes)):
-                plt.subplot(2, 5, i + 1)
-                mode_reshaped = modes[:, i].reshape((N1, N0))
-                
-                plt.contourf(mode_reshaped, cmap='RdYlBu', levels=20)
-                plt.title(f"Modo {i+1}\n{freq[i]:.1f} Hz")
-                plt.axis('off')
-            
-            plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-            plt.show() class Mechanic_P4(Mechanic):
+
+            plot_membrane_modes(self.N, self.n_modes, modes, freq)
+            plt.show() 
+
+
+class Mechanic_P4(Mechanic):
 
     def __init__(self, config):
         super().__init__(config)
@@ -210,3 +206,19 @@ class Mechanic_P2(Mechanic):
         c = modes.T @ V
 
         return c, V, modes, freq 
+    
+    def run(self, print_info = True, plot = False):
+        c, V, modes, freq = self.compute_modal_projection()
+
+        if print_info:
+            print("RESULTADO DA PROJEÇÃO MODAL:")
+            for i in range (len(c)):
+                print(f"    Modo {i+1} ({freq[i]:.2f} Hz): Coeficiente {i}: {freq[i]:.6f}")
+    
+            print("\n\nREPRESENTAÇÃO DO TERMO FORÇANTE NA BASE MODAL:")
+            for i in range(len(c)):
+                print(f"    Termo {i+1}: ({c[i]:.6f}) * Phi_{i+1} * cos(omega_s * t)")
+
+        if plot:
+            plot_membrane_modes(self.N, self.n_modes, modes, freq)
+            plt.show()

@@ -280,3 +280,20 @@ def plot_p1_complex_analysis(dados, colunas):
   plt.title(f'Resultados de Complexidade: Thermal_P1', pad=20)
   plt.tight_layout()
   plt.show() 
+
+
+def plot_membrane_modes(N, n_modes, modes, freq):
+  N0, N1 = N
+  plt.figure(figsize=(15, 7))
+
+  plt.suptitle(f"Modos de Vibração - Grade {N0}x{N1}", fontsize=14)
+  
+  for i in range(min(10,n_modes)):
+      plt.subplot(2, 5, i + 1)
+      mode_reshaped = modes[:, i].reshape((N1, N0))
+      
+      plt.contourf(mode_reshaped, cmap='RdYlBu', levels=20)
+      plt.title(f"Modo {i+1}\n{freq[i]:.1f} Hz")
+      plt.axis('off')
+  
+  plt.tight_layout(rect=[0, 0.03, 1, 0.95])
