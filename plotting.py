@@ -279,4 +279,37 @@ def plot_p1_complex_analysis(dados, colunas):
 
   plt.title(f'Resultados de Complexidade: Thermal_P1', pad=20)
   plt.tight_layout()
-  plt.show() 
+  plt.show()
+  
+def gera_grafico_energia_M_P5(omega_n, c, titulo="Ressonância e Energia Elástica Média"):
+  
+  peak_points = omega_n[(omega_n >= 0.5) & (omega_n <= 150)]
+  w_log_spaced = np.logspace(np.log10(0.5), np.log10(150), 2000)
+  all_w_stars = np.unique(np.sort(np.concatenate([w_log_spaced, peak_points])))
+  
+  betas = [0.01, 0.1, 1.0]
+  colors = ['red', 'magenta', 'green']
+    
+  plt.figure(figsize=(10, 6))
+    
+  for beta, color in zip(betas, colors):
+      energy_avg = np.zeros_like(all_w_stars)
+        
+      for k, w_star in enumerate(all_w_stars):
+            
+          denom = (omega_n**2 - w_star**2)**2 + (beta * w_star)**2
+            
+          Q2 = (c**2) / denom
+          energy_avg[k] = 0.25 * np.sum((omega_n**2) * Q2)
+            
+      plt.loglog(all_w_stars, energy_avg, label=f'$\\beta$ = {beta}', color=color, linewidth=1.2)
+        
+  plt.xlabel('Frequência de Excitação $\\hat{\\omega}^*$')
+  plt.ylabel('Energia Elástica Média $\\langle E \\rangle$')
+  plt.title(titulo)
+  plt.xlim(0.5, 150)
+  plt.ylim(bottom=1e-5)
+  plt.legend()
+  plt.grid(True, which="both", ls="--", alpha=0.5)
+  plt.tight_layout()
+  plt.show()

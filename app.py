@@ -11,7 +11,12 @@ def main():
 
     test = Mechanic(config_m)
     test.run(print_info=True, plot=False)
-
+    
+    test_p4 = Mechanic_P4(config_m)
+    
+    test_p4.P5_plot_average_elastic_energy()
+    
+    """
     # ==================== PROBLEMA 4 =========================
     test_p4 = Mechanic_P4(config_m)
     coefs, V_vector, phi, f_naturais = test_p4.compute_modal_projection()
@@ -22,6 +27,8 @@ def main():
     print("REPRESENTAÇÃO DO TERMO FORÇANTE NA BASE MODAL:")
     for i in range(len(coefs)):
         print(f"  Termo {i+1}: ({coefs[i]:.6f}) * Phi_{i+1} * cos(omega_s * t)")
+    
+    """
     
     return
 
