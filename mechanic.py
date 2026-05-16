@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import sparse
 from scipy.sparse.linalg import eigsh
+from plotting import gera_grafico_energia_M_P5
 import matplotlib.pyplot as plt
 import time
 import math
@@ -222,3 +223,15 @@ class Mechanic_P4(Mechanic):
         if plot:
             plot_membrane_modes(self.N, self.n_modes, modes, freq)
             plt.show()
+    
+    def P5_plot_average_elastic_energy(self):
+        
+        c, V, modes, freq = self.compute_modal_projection()
+
+        omega_fisico = freq * 2.0 * np.pi 
+        freq_scale = np.sqrt(self.sigma / (self.rho * self.e * self.R**2))
+        
+        lam = (omega_fisico / freq_scale)**2 
+        omega_n_adim = np.sqrt(lam / self.sigma)
+
+        gera_grafico_energia_M_P5(omega_n_adim, c, titulo="Energia Média - Problema 5")

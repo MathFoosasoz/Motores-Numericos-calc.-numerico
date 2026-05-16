@@ -22,10 +22,17 @@ def main():
     # Plota os modos sequencialmente
     test_p2.plot_modes(config_m["MULTI_N"])
 
-
+    
+    test_p4 = Mechanic_P4(config_m)
+    
+    test_p4.P5_plot_average_elastic_energy()
+    
+    """
     # ==================== PROBLEMA 4 =========================
     test_p4 = Mechanic_P4(config_m)
     test_p4.run(print_info = True, plot = False)
+    
+    """
     
     return
 
