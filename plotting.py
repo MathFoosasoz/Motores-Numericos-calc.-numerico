@@ -330,3 +330,38 @@ def gera_grafico_energia_M_P5(omega_n, c, titulo="Ressonância e Energia Elásti
   plt.grid(True, which="both", ls="--", alpha=0.5)
   plt.tight_layout()
   plt.show()
+
+def plot_interpolation(results, N):
+  fig, axes = plt.subplots(1, 3, figsize=(20, 4))
+
+  for ax, method in zip(axes, results.keys()):
+      ax.contourf(results[method][0], results[method][1], results[method][2].T, levels=20, cmap='hot')
+      ax.set_title(f'{method} - ({N[0]}, {N[1]})')
+      plt.colorbar(ax.collections[0], ax=ax)
+
+  plt.tight_layout()
+
+
+def plot_temp_hydraulics(conec, Xno, T_nodes, method, Nx, Ny):
+  fig, ax = plt.subplots(figsize=(10, 5))
+
+  # Plotar as arestas
+  for k in range(len(conec)):
+      n1, n2 = conec[k, 0], conec[k, 1]
+      x_aresta = [Xno[n1, 0], Xno[n2, 0]]
+      y_aresta = [Xno[n1, 1], Xno[n2, 1]]
+      ax.plot(x_aresta, y_aresta, 'k-', linewidth=0.5, zorder=1)
+
+  # Plotar os nós coloridos pela temperatura
+  sc = ax.scatter(
+      Xno[:, 0], Xno[:, 1],
+      c=T_nodes,
+      cmap='jet',
+      s=20,
+      zorder=2
+  )
+
+  plt.colorbar(sc, ax=ax, label='Temperatura (°C)')
+  ax.set_aspect('equal')
+  ax.set_title(f'Temperatura nos nós da rede hidráulica - {method} - ({Nx}, {Ny})')
+  plt.tight_layout()

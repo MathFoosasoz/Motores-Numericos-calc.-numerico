@@ -26,23 +26,23 @@ class Hydraulics():
         
     def calculate_conductancy(self):
 
-            hydraulic_diameter = (4*self.pipe_area/np.pi)**0.5 
-            const_K = np.pi*(hydraulic_diameter**4)/(128*self.viscosity)
+        hydraulic_diameter = (4*self.pipe_area/np.pi)**0.5 
+        const_K = np.pi*(hydraulic_diameter**4)/(128*self.viscosity)
 
-            C = np.zeros(shape = self.conec.shape[0])
+        C = np.zeros(shape = self.conec.shape[0])
 
-            for index, connection in enumerate(self.conec):
-                node_start, node_end = connection
+        for index, connection in enumerate(self.conec):
+            node_start, node_end = connection
 
-                x_start, y_start = self.Xno[node_start]
-                x_end, y_end = self.Xno[node_end]
+            x_start, y_start = self.Xno[node_start]
+            x_end, y_end = self.Xno[node_end]
 
-                Lk = ((x_start-x_end)**2 + (y_start-y_end)**2)**0.5
+            Lk = ((x_start-x_end)**2 + (y_start-y_end)**2)**0.5
 
-                C[index]= const_K/Lk
+            C[index]= const_K/Lk
 
-            self.C = C
-            return C
+        self.C = C
+        return C
 
     def assembly(self):
         self.calculate_conductancy() # Gera a matriz C de condutâncias
@@ -563,3 +563,115 @@ def complexity_analysis(HydraulicClass: Hydraulics, print_info, plot):
         plt.title(f'Resultados para classe: {HydraulicClass.__class__.__name__}', pad=20)
 
         plt.show()
+
+
+class Hydraulics_T():
+    def __init__(self, conec, Xno, config):
+        self.conec = conec
+        self.Xno = Xno
+
+        self.num_nodes = np.max(conec) + 1          
+        self.num_pipes = np.shape(conec)[0]         
+
+        self.node_outlet = config["N_OUTLET"]       
+        self.outlet = config["OUTLET"]              
+        self.pipe_area = config["PIPE_AREA"]        
+        raw_dict = config["INLET_FLOW_DICT"]
+        self.inlet_flow_dict = {
+            int(node): float(flow) for node, flow in raw_dict.items()
+        }
+
+        self.results = {'P': None, 'Q': None, 'W': None} 
+
+    def viscosity_t(self, T):
+        # mu(T) = 0.001791 / (1 + 0.03368*T + 0.000221*T^2)
+        return 0.001791 / (1 + 0.03368 * T + 0.000221 * (T ** 2))
+    
+    def calculate_conductancy(self):
+
+        hydraulic_diameter = (4*self.pipe_area/np.pi)**0.5 
+        const_K = np.pi*(hydraulic_diameter**4)/(128)
+
+        C = np.zeros(shape = self.conec.shape[0])
+
+        for index, connection in enumerate(self.conec):
+            node_start, node_end = connection
+
+            x_start, y_start = self.Xno[node_start]
+            x_end, y_end = self.Xno[node_end]
+
+            Lk = ((x_start-x_end)**2 + (y_start-y_end)**2)**0.5
+
+            C[index]= const_K/Lk
+
+        self.C = C
+        return C
+    
+    def assembly(self):
+        self.calculate_conductancy()
+
+        A = np.zeros(shape=(self.num_nodes,self.num_nodes)) 
+        for index, conectivity in enumerate(self.C):
+            from_node = self.conec[index,0]     
+            to_node = self.conec[index,1]       
+
+            A[from_node, from_node] += conectivity 
+            A[to_node, to_node] += conectivity    
+
+            A[to_node, from_node] -= conectivity   
+            A[from_node, to_node] -= conectivity   
+
+        return A
+
+
+    def solve_network(self):
+        A_tilde = self.assembly()
+
+        A_tilde[self.node_outlet, :] = 0
+        A_tilde[self.node_outlet, self.node_outlet] = 1
+
+        b_vector = np.zeros(shape=(self.num_nodes,))
+
+        for node, flow in self.inlet_flow_dict.items():
+            b_vector[node] = flow
+
+        b_vector[self.node_outlet] = self.outlet
+
+        base_pressures = np.linalg.solve(A_tilde, b_vector)
+
+        # PRECISA ṔOR INICIALIZAR O NODE TEMPS COMO ATRIBUTO ANTES DE CHAMAR ESSA FUNÇÃO NO HYDRAULICS_THERMAL!!!
+        viscosity = self.viscosity_t(self.node_temps)
+
+        pressures = base_pressures * viscosity
+        self.results["P"] = pressures
+        return pressures
+    
+    def calculate_flow_rate_and_potency(self):
+
+        pressures = self.solve_network()
+
+        matriz_K = np.zeros(shape=(self.num_pipes, self.num_pipes))   
+        matriz_D = np.zeros(shape=(self.num_pipes, self.num_nodes))
+
+        for k in range(self.num_pipes):
+            matriz_K[k,k] = self.C[k]     
+
+            from_node = self.conec[k, 0]    
+            to_node = self.conec[k, 1]      
+
+            for j in range(self.num_nodes):
+                if (j == from_node): 
+                    matriz_D[k, j] = 1
+
+                if (j == to_node):
+                    matriz_D[k, j] = -1
+
+    
+        Q = matriz_K @ matriz_D @ pressures 
+        W =  pressures.T @ matriz_D.T @ Q
+
+        # Atualiza os resultados da classe 
+        self.results['Q'] = Q
+        self.results['W'] = W
+
+        return (Q,W)

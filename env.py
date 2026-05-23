@@ -95,3 +95,25 @@ CONFIG_M = {
     "MULTI_N": [21, 41, 61, 81, 101] # niveis para o p2
 }
 
+
+CONFIG_HT = {
+
+    #Hydraulics
+    "LEVELS": 3,
+    "INLET_FLOW_DICT": {"0": 1.0e-7, "175": 1.0e-6},   
+    "INLET_PRESSURE": 100,
+    "N_OUTLET": 5,
+    "OUTLET": 0,
+    "PIPE_AREA": 0.00000025,
+
+    # Thermal 
+    "CONDUCTIVITY": 0.25,
+    "SOURCE": 500000,
+    "N": (101, 51),
+    "L": (0.03, 0.015),
+    "BORDER_TEMPS": [30, lambda x,n: 10 + 20*(x/(n[0] - 1)), 10, lambda x,n: 10 + 20*(x/(n[0] - 1))],
+
+    "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.0025, "coords": (2.0025, 0.75), "T": 35},
+
+}
+

@@ -1080,3 +1080,131 @@ class SolucionadorTermicoIterativo(Thermal):
 
             print(f"{n[0]:>6} {n[1]:>6} {n[0]*n[1]:>8} {t_mont:>11.4f} {t_resolv:>12.4f} {n_iter:>7} {T_max:>10.4f}   {T_c:>10.4f}")
 
+
+class Thermal_H():
+    def __init__(self, config):
+
+        self.N = config["N"]
+        self.L = config["L"]
+        self.f = config["SOURCE"]
+        self.K = config["CONDUCTIVITY"]
+        self.temps = config["BORDER_TEMPS"]
+        
+        circle_dict = config["CIRCULAR_SOURCE_KNOWN_TEMP_DICT"]
+        self.circle_radius = circle_dict["R"]
+        self.circle_coords = circle_dict["coords"]
+        self.circle_temp = circle_dict["T"]
+
+    @staticmethod
+    def distance(a, b):
+        return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
+    
+    def  ij2n(self, i, j):
+        return j + i*self.N[0]
+    
+    def find_square_area(self):
+        return (( self.L[0]/(self.N[0] - 1) ) * ( self.L[1]/(self.N[1] - 1) ))
+
+    def get_index_inside_circus(self):
+
+        dx = self.L[0]/(self.N[0]-1)
+        dy = self.L[1]/(self.N[1]-1)
+
+        center_x = self.circle_coords[0]*self.L[0]
+        center_y = self.circle_coords[1]*self.L[1]
+
+        center_coords = (center_x, center_y)
+
+        index_inside_circus = []
+        position = []
+
+        for i in range(self.N[1]):
+            for j in range(self.N[0]):
+
+                position = [j*dx, i*dy]
+
+                if self.distance(position, center_coords)<= self.circle_radius:
+                    index_inside_circus.append(self.ij2n(i, j))
+
+        self.index_inside_circus = np.array(index_inside_circus)
+
+        #print(self.index_inside_circus)
+        return
+    
+    def assembly(self):
+        nunk = self.N[0]*self.N[1]
+
+        self.get_index_inside_circus()
+        h2 = self.find_square_area()
+
+        A = np.zeros(shape=(nunk,nunk))
+        b = np.zeros(shape=(nunk,))
+
+        for j in range(1, self.N[0] - 1):
+            for i in range(1, self.N[1] - 1):
+                
+                Ic = self.ij2n(i, j)
+
+                if Ic not in self.index_inside_circus:
+                    Ie = self.ij2n(i+1, j)
+                    Iw = self.ij2n(i-1, j)
+                    In = self.ij2n(i, j+1)
+                    Is = self.ij2n(i, j-1)
+
+
+                    A[Ic,[Ic,Ie,Iw,In,Is]] = 4, -1, -1, -1, -1
+                    b[Ic] = (h2 * self.f / self.K)
+
+
+        #print(A)
+        return A, b
+        
+    def solve_system_sparse(self):
+        nunk = self.N[0]*self.N[1]
+
+        Nx, Ny = self.N
+        h2 = self.find_square_area()
+        
+        TR, TT, TL, TB = self.temps
+
+        rows, cols, data = [], [], []
+        b = np.zeros(nunk)
+        self.get_index_inside_circus()
+
+        for i in range(Ny): 
+            for j in range(Nx): 
+                Ic = self.ij2n(i, j)
+
+                if j == Nx - 1:     
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TR
+                elif j == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TL
+                elif i == Ny - 1:   
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TT(j, self.N)
+                elif i == 0:               
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = TB(j, self.N)
+
+                elif Ic in self.index_inside_circus:
+                    rows.append(Ic); cols.append(Ic); data.append(1.0); b[Ic] = self.circle_temp
+
+                else:
+                    # Mapeamento dos vizinhos:
+                    Ie = self.ij2n(i, j+1)  # Leste (+x)
+                    Iw = self.ij2n(i, j-1)  # Oeste (-x)
+                    In = self.ij2n(i+1, j)  # Norte (+y)
+                    Is = self.ij2n(i-1, j)  # Sul (-y)
+
+
+                    # Preenche os coeficientes na matriz esparsa
+                    rows.append(Ic); cols.append(Ic); data.append(4.0)
+                    rows.append(Ic); cols.append(Ie); data.append(-1.0)
+                    rows.append(Ic); cols.append(Iw); data.append(-1.0)
+                    rows.append(Ic); cols.append(In); data.append(-1.0)
+                    rows.append(Ic); cols.append(Is); data.append(-1.0)
+
+                    b[Ic] = (h2 * self.f)/self.K
+
+        A_sparse = sparse.coo_matrix((data, (rows, cols)), shape=(nunk, nunk)).tocsr()
+        return spsolve(A_sparse, b)
+
+    
