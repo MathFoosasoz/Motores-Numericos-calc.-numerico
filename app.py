@@ -12,10 +12,14 @@ def main():
     config_ht = env.CONFIG_HT
 
     test = HydraulicThermal(config_ht)
-    test.run_interpolator(plot=True)
+    test.run_interpolator(plot=False)
     
+    test.evaluate_coupling(plot=True)
+
+
     return
 
 
 if __name__ == "__main__":
     main()
+    

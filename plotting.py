@@ -365,3 +365,36 @@ def plot_temp_hydraulics(conec, Xno, T_nodes, method, Nx, Ny):
   ax.set_aspect('equal')
   ax.set_title(f'Temperatura nos nós da rede hidráulica - {method} - ({Nx}, {Ny})')
   plt.tight_layout()
+
+
+
+def plot_arestas_cromaticas_hidraulics(conec, Xno, T_nodes, T_arestas, method, Nx, Ny, titulo):
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    #Plotar as arestas coloridas pela temperatura média de cada canal
+    from matplotlib.collections import LineCollection
+    segmentos = []
+    for k in range(len(conec)):
+        n1, n2 = conec[k, 0], conec[k, 1]
+        segmentos.append((Xno[n1], Xno[n2]))
+
+    norm = plt.Normalize(vmin=T_nodes.min(), vmax=T_nodes.max())
+    lc = LineCollection(segmentos, cmap='jet', norm=norm, linewidths=2.0, zorder=1)
+    lc.set_array(T_arestas)
+    ax.add_collection(lc)
+
+    #Plotar tambem os nós coloridos pela temperatura
+    sc = ax.scatter(
+        Xno[:, 0], Xno[:, 1],
+        c=T_nodes,
+        cmap='jet',
+        norm=norm,
+        s=20,
+        zorder=2,
+        edgecolors='none'
+    )
+
+    plt.colorbar(sc, ax=ax, label='Temperatura (°C)')
+    ax.set_aspect('equal')
+    ax.set_title(titulo, fontsize=12, pad=15)
+    plt.tight_layout()
