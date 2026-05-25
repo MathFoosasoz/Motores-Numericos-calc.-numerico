@@ -199,8 +199,106 @@ class HydraulicThermal():
                 )
                 plt.show()
 
-        
+    def resolver_rede_acoplada(self, N_subdivisoes, regra='trapezio'):
+           # Resolve o circuito hidráulico atualizando as condutâncias com base
+           # nas temperaturas integradas de cada aresta.
+            
+            # 1. Calcula o vetor de temperaturas médias de cada cano (dimensão: num_pipes)
+            T_medias_arestas = self.integrar_todas_as_arestas(N_subdivisoes, regra)
+            
+            # 2. Acessa as variáveis internas da sub-classe hidráulica
+            hyd = self.hydraulics
+            
+            # 3. Calcula o diâmetro hidráulico e a constante base (sem a viscosidade)
+            hydraulic_diameter = (4 * hyd.pipe_area / np.pi) ** 0.5 
+            const_K_base = np.pi * (hydraulic_diameter ** 4) / 128.0
 
+            # 4. Atualiza o vetor de condutâncias C cano por cano baseado na viscosidade local
+            C_atualizado = np.zeros(hyd.num_pipes)
+            for idx, connection in enumerate(hyd.conec):
+                node_start, node_end = connection
+                x_start, y_start = hyd.Xno[node_start]
+                x_end, y_end = hyd.Xno[node_end]
+                Lk = ((x_start - x_end) ** 2 + (y_start - y_end) ** 2) ** 0.5
+
+                # Calcula a viscosidade do fluido para a temperatura média deste cano específico
+                mu_local = hyd.viscosity_t(T_medias_arestas[idx])
+                
+                # Condutância real corrigida termicamente
+                C_atualizado[idx] = const_K_base / (mu_local * Lk)
+
+            # Salva o novo vetor C na instância hidráulica para os cálculos de vazão subsequentes
+            hyd.C = C_atualizado
+
+            # 5. Remonta a matriz A global de condutâncias da rede
+            A_tilde = np.zeros((hyd.num_nodes, hyd.num_nodes))
+            for idx, connectivity in enumerate(hyd.C):
+                from_node = hyd.conec[idx, 0]
+                to_node = hyd.conec[idx, 1]
+
+                A_tilde[from_node, from_node] += connectivity
+                A_tilde[to_node, to_node] += connectivity
+                A_tilde[to_node, from_node] -= connectivity
+                A_tilde[from_node, to_node] -= connectivity
+
+            # 6. Aplica as condições de contorno de Pressão no Outlet (idêntico ao Hydraulics_T)
+            A_tilde[hyd.node_outlet, :] = 0
+            A_tilde[hyd.node_outlet, hyd.node_outlet] = 1
+
+            b_vector = np.zeros(hyd.num_nodes)
+            for node, flow in hyd.inlet_flow_dict.items():
+                b_vector[node] = flow
+            b_vector[hyd.node_outlet] = hyd.outlet
+
+            # 7. Resolve as pressões reais acopladas
+            pressures = np.linalg.solve(A_tilde, b_vector)
+            hyd.results['P'] = pressures
+
+            # 8. Calcula as vazões Q e a potência dissipada W usando os novos valores de C
+            matriz_K = np.diag(hyd.C)
+            matriz_D = np.zeros((hyd.num_pipes, hyd.num_nodes))
+            for k in range(hyd.num_pipes):
+                matriz_D[k, hyd.conec[k, 0]] = 1
+                matriz_D[k, hyd.conec[k, 1]] = -1
+
+            Q = matriz_K @ matriz_D @ pressures 
+            W = pressures.T @ matriz_D.T @ Q
+            
+            hyd.results['Q'] = Q
+            hyd.results['W'] = W
+
+            return np.max(pressures), W       
+     
+    def avaliar_impacto_malha_e_quadratura(self):
+            """Quantifica como a escolha da malha térmica e as regras de quadratura
+
+            influenciam a pressão máxima e a potência consumida na rede.
+            """
+            N_refinada = [241, 121]
+            N_grosseira = [61, 31]
+            
+            regras = ['ponto_medio', 'trapezio']
+            subdivisoes = [1, 10, 100, 1000]
+
+            print("\n" + "="*85)
+            print(" AVALIAÇÃO QUANTITATIVA DO ACOPLAMENTO TERMO-HIDRÁULICO")
+            print("="*85)
+            print(f"{'Malha Térmica':<20} | {'Regra':<12} | {'Subdiv. (N)':<12} | {'Pressão Máx (Pa)':<18} | {'Potência Total (W)':<18}")
+            print("-" * 85)
+
+            for malha_nome, malha_dim in [("Grosseira", N_grosseira), ("Refinada", N_refinada)]:
+                # Altera a malha do interpolador rodando o solver térmico novamente
+                self.thermal.N = malha_dim
+                self.interpolator(method='cubic') # Garante o interpolador atualizado
+                
+                for regra in regras:
+                    for N in subdivisoes:
+                        p_max, potencia = self.resolver_rede_acoplada(N_subdivisoes=N, regra=regra)
+                        
+                        nome_regra = "Ponto Médio" if regra == 'ponto_medio' else "Trapézio"
+                        print(f"{malha_nome:<20} | {nome_regra:<12} | {N:<12} | {p_max:<18.2f} | {potencia:<18.6f}")
+            
+            print("="*85 + "\n")
 
 
         
