@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from shapely.geometry import LineString, Point
 from shapely.ops import unary_union
+from scipy.spatial import cKDTree
 
 def GeraGrafo(levels=3):
     nodes_data = []
@@ -132,3 +133,57 @@ def show_conec_issues(conec):
     print(f" {conec[-1]}]")
             
 
+def calcular_distancia_ponto_segmento(p, a, b):
+    """Calcula a menor distância entre um ponto 'p' e o segmento 'ab'."""
+    ab = b - a
+    ap = p - a
+    ab_2 = np.dot(ab, ab)
+    if ab_2 == 0:
+        return np.linalg.norm(p - a)
+    t = np.dot(ap, ab) / ab_2
+    t = np.clip(t, 0.0, 1.0)
+    ponto_proximo = a + t * ab
+    return np.linalg.norm(p - ponto_proximo)
+
+def CreateMapDistance(Lx, Ly, Nx, Ny, nos_rede, conexoes_rede, d_max):
+    """
+    Mapeia as arestas próximas a cada ponto da grade utilizando cKDTree.
+    """
+    # 1. Gerar os pontos da grade bidimensional da placa térmica
+    x = np.linspace(0, Lx, Nx)
+    y = np.linspace(0, Ly, Ny)
+    X, Y = np.meshgrid(x, y)
+    pontos_grade = np.column_stack((X.ravel(), Y.ravel()))
+    
+    # 2. CONSTRUÇÃO DA ÁRVORE KD (Onde o KDTree é usado!)
+    # Construímos a árvore espacial indexando todos os pontos da grade da placa
+    arvore_grade = cKDTree(pontos_grade)
+    
+    # Inicializa a estrutura de retorno
+    mapa_proximidade = [[] for _ in range(Nx * Ny)]
+    
+    # 3. BUSCA ESPACIAL EFICIENTE
+    for id_aresta, (idx_i, idx_j) in enumerate(conexoes_rede):
+        p_i = nos_rede[idx_i]
+        p_j = nos_rede[idx_j]
+        
+        # Encontramos o ponto médio da aresta e o seu raio de abrangência máximo
+        ponto_medio = (p_i + p_j) / 2.0
+        comprimento_aresta = np.linalg.norm(p_j - p_i)
+        
+        # O raio de busca na árvore engloba toda a aresta mais a distância d_max
+        raio_busca = (comprimento_aresta / 2.0) + d_max
+        
+        # AQUI usamos o KDTree para filtrar rapidamente apenas os pontos da grade 
+        # que estão dentro da esfera que envolve a aresta expandida
+        indices_candidatos = arvore_grade.query_ball_point(ponto_medio, raio_busca)
+        
+        # 4. FILTRAGEM REFINADA (Apenas para os pontos candidatos retornados pela árvore)
+        for idx_ponto in indices_candidatos:
+            ponto = pontos_grade[idx_ponto]
+            dist = calcular_distancia_ponto_segmento(ponto, p_i, p_j)
+            
+            if dist <= d_max:
+                mapa_proximidade[idx_ponto].append((id_aresta, dist))
+                
+    return mapa_proximidade
