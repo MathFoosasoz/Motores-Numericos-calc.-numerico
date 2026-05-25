@@ -7,7 +7,7 @@ import math
 # import matplotlib
 # matplotlib.use('TkAgg')
 
-def PlotaRede(conec, Xno, p, q):
+def PlotaRede(conec, Xno, p=None, q=None, fig=None, ax=None, show=False):
 
     edges = conec
     coord = Xno
@@ -34,23 +34,35 @@ def PlotaRede(conec, Xno, p, q):
     text_scale=1.1
     save_path=None
 
-    fig, ax = plt.subplots(figsize=fig_size)
+    overlay = fig is not None and ax is not None
+
+    if fig is None or ax is None:
+        fig, ax = plt.subplots(figsize=fig_size)
 
     # ---- Pressure colormap ----
-    cmap = plt.get_cmap(cmap_name)
-    vmin, vmax = float(p.min()), float(p.max())
-    norm = plt.Normalize(vmin=vmin, vmax=vmax)
     xs, ys = [], []
     for i in range(nv):
       xs.append(coord[i,0])
       ys.append(coord[i,1])
-    colors = [cmap(norm(pi)) for pi in p]
-    ax.scatter(xs, ys, s=node_size, c=colors, zorder=3, edgecolors="black")
+
+    if p is not None:
+      cmap = plt.get_cmap(cmap_name)
+      vmin, vmax = float(p.min()), float(p.max())
+      norm = plt.Normalize(vmin=vmin, vmax=vmax)
+      colors = [cmap(norm(pi)) for pi in p]
+      ax.scatter(xs, ys, s=node_size, c=colors, zorder=3, edgecolors="black")
+    else:
+      ax.scatter(xs, ys, s=5, color="black", zorder=3)
 
     # ---- Draw black edges and arrows ----
     #segs, mids = edge_coords()
     for idx, ((x1, y1), (x2, y2)) in enumerate(segs):
-        ax.plot([x1, x2], [y1, y2], color="black", linewidth=3.0, zorder=1)
+        linewidth = 0.35 if p is None else 3.0
+        zorder = 2 if p is None else 1
+        ax.plot([x1, x2], [y1, y2], color="black", linewidth=linewidth, zorder=zorder)
+
+        if p is None or q is None:
+          continue
 
         xm, ym = mids[idx]
         dx, dy = x2 - x1, y2 - y1
@@ -92,39 +104,46 @@ def PlotaRede(conec, Xno, p, q):
               )
 
     # ---- Node labels ----
-    for node, (x, y) in enumerate(coord):
-        ax.text(x, y, str(node),
-                ha="center", va="center", fontsize=11 * text_scale, zorder=4)
-        ax.text(x - 0.075, y - 0.075, f"p={p[node]:.1e}",
-                ha="right", va="bottom", fontsize=12 * text_scale,
-                color="black", zorder=5)
+    if p is not None:
+      for node, (x, y) in enumerate(coord):
+          ax.text(x, y, str(node),
+                  ha="center", va="center", fontsize=11 * text_scale, zorder=4)
+          ax.text(x - 0.075, y - 0.075, f"p={p[node]:.1e}",
+                  ha="right", va="bottom", fontsize=12 * text_scale,
+                  color="black", zorder=5)
 
     # ---- Final adjustments ----
     ax.set_aspect("equal")
-    ax.axis("off")
+    if not overlay:
+      ax.axis("off")
 
     # ---- Set limits with small margin ----
     x_min, x_max = min(xs), max(xs)
     y_min, y_max = min(ys), max(ys)
     x_range, y_range = x_max - x_min, y_max - y_min
-    ax.set_xlim(x_min - 0.5, x_max + 0.5)
-    ax.set_ylim(y_min - 0.5, y_max + 0.5)
+    if not overlay:
+      ax.set_xlim(x_min - 0.5, x_max + 0.5)
+      ax.set_ylim(y_min - 0.5, y_max + 0.5)
 
     # Optionally adapt figure size to graph geometry
     aspect_ratio = x_range / y_range if y_range != 0 else 1.0
     base_size = 8  # base figure size
-    fig.set_size_inches(base_size * aspect_ratio, base_size)
+    if not overlay:
+      fig.set_size_inches(base_size * aspect_ratio, base_size)
 
     # ---- Colorbar ----
-    sm = cm.ScalarMappable(cmap=cmap, norm=norm)
-    cbar = plt.colorbar(sm, ax=ax, label="Pressure, p", fraction=0.0225, pad=0.025)
-    cbar.ax.tick_params(labelsize=10 * text_scale)
-    cbar.set_label("Pressure, p", fontsize=12 * text_scale)
+    if p is not None:
+      sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+      cbar = plt.colorbar(sm, ax=ax, label="Pressure, p", fraction=0.0225, pad=0.025)
+      cbar.ax.tick_params(labelsize=10 * text_scale)
+      cbar.set_label("Pressure, p", fontsize=12 * text_scale)
 
     if save_path:
       plt.savefig(save_path, dpi=300, bbox_inches="tight")
       plt.show()
 
+    if show:
+      plt.show()
     return fig, ax
 
 
@@ -140,7 +159,7 @@ def PlotaMaxPressao(pressures, time_constants):
   plt.grid(True)
 
 
-def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None, Tmax=None):
+def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None, Tmax=None, show=True):
     x = np.linspace(0.0, Lx, Nx)
     y = np.linspace(0.0, Ly, Ny)
 
@@ -174,9 +193,13 @@ def PlotaPlaca(Nx, Ny, Lx, Ly, T, flag_type='contour', filename=None, Tmax=None)
     if(filename is not None):
       plt.savefig(filename)
 
-    plt.show()
+    if show:
+      plt.show()
 
-    return
+    if show:
+      return
+
+    return fig, ax
 
 
 def PlotaEixoTemps(N, L_eixo, T, filename=None):
@@ -365,3 +388,34 @@ def plot_temp_hydraulics(conec, Xno, T_nodes, method, Nx, Ny):
   ax.set_aspect('equal')
   ax.set_title(f'Temperatura nos nós da rede hidráulica - {method} - ({Nx}, {Ny})')
   plt.tight_layout()
+
+
+def plot_hydraulic_thermal_profiles(N, L, T, r_cond):
+  Nx, Ny = N
+  Lx, Ly = L
+
+  x = np.linspace(0.0, Lx, Nx)
+  y = np.linspace(0.0, Ly, Ny)
+  Z = np.copy(T).reshape(Ny, Nx)
+
+  y_index = (Ny - 1) // 2
+  x_index = (Nx - 1) // 2
+
+  fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+
+  axes[0].plot(x, Z[y_index, :])
+  axes[0].set_title(f"Perfil horizontal - y={y[y_index]:.5f} m")
+  axes[0].set_xlabel("x (m)")
+  axes[0].set_ylabel("Temperatura (C)")
+  axes[0].grid(True)
+
+  axes[1].plot(y, Z[:, x_index])
+  axes[1].set_title(f"Perfil vertical - x={x[x_index]:.5f} m")
+  axes[1].set_xlabel("y (m)")
+  axes[1].set_ylabel("Temperatura (C)")
+  axes[1].grid(True)
+
+  fig.suptitle(f"Perfis termicos - N=({Nx}, {Ny}), r_cond={r_cond:.5g} m")
+  plt.tight_layout()
+
+  return fig, axes
