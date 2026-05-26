@@ -17,8 +17,8 @@ def main():
     test.evaluate_coupling(plot=True)
 
     analisador = HydraulicThermal(config_ht)
-    analisador.evaluate_coupling(plot=True) # Executa sua verificação assintótica e plota os gráficos cromáticos
-    analisador.avaliar_impacto_malha_e_quadratura() # Imprime a tabela termo-hidráulica acoplada definitiva
+    analisador.evaluate_coupling(plot=True) 
+    analisador.avaliar_impacto_malha_e_quadratura() 
 
     return
 
