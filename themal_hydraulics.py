@@ -272,7 +272,7 @@ class HydraulicThermal():
             #influenciam a pressão máxima e a potência consumida na rede.
             
             N_refinada = [241, 121]
-            N_grosseira = [61, 31]
+            N_grosseira = [21, 11]
             
             regras = ['ponto_medio', 'trapezio']
             subdivisoes = [1, 10, 100, 1000]
