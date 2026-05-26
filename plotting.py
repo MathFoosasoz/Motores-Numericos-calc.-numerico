@@ -419,3 +419,26 @@ def plot_hydraulic_thermal_profiles(N, L, T, r_cond):
   plt.tight_layout()
 
   return fig, axes
+
+def plota_perfis_vertical_horizontal(x_coords, perfil_h, y_mid_val, y_coords, perfil_v, x_mid_val, S0, case):
+    
+    # PROBLEMA P2 ACOPLAMENTO HIDRAULICO TERMICO
+    
+    fig2, axes2 = plt.subplots(1, 2, figsize=(13, 5))
+    fig2.suptitle(f"Perfis térmicos - S0={S0:.0e} ({case})", fontsize=12)
+    
+    # Perfil Horizontal
+    axes2[0].plot(x_coords, perfil_h, 'C0-', linewidth=1.5)
+    axes2[0].set_title(f"Perfil horizontal - y={y_mid_val:.5f} m")
+    axes2[0].set_xlabel("x (m)")
+    axes2[0].set_ylabel("Temperatura (C)")
+    axes2[0].grid(True)
+    
+    # Perfil Vertical
+    axes2[1].plot(y_coords, perfil_v, 'C0-', linewidth=1.5)
+    axes2[1].set_title(f"Perfil vertical - x={x_mid_val:.5f} m")
+    axes2[1].set_xlabel("y (m)")
+    axes2[1].set_ylabel("Temperatura (C)")
+    axes2[1].grid(True)
+    
+    plt.tight_layout()
