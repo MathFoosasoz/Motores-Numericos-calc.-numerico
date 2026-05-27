@@ -39,15 +39,7 @@ class Hydraulic_to_Thermal():
         return dx, dy
 
     def _prepare_circle_center(self):
-        # Thermal_H guarda as coordenadas originais; aqui convertemos para coordenadas fisicas.
-        coords = np.array(self.thermal.circle_coords, dtype=float)
-
-        if np.all(coords <= 1.0):
-            self.circle_center = coords * np.array(self.thermal.L)
-        elif np.all(coords <= self.thermal.L):
-            self.circle_center = coords
-        else:
-            self.circle_center = coords * 0.01
+        self.circle_center = np.array(self.thermal.circle_coords, dtype=float)
 
     def _circle_mask(self):
         # Mascara dos nos onde a temperatura e imposta pela inclusao circular.
