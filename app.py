@@ -4,6 +4,7 @@ from thermal import Thermal, Thermal_P1, Thermal_P2, Thermal_P3, Thermal_P4, The
 from mechanic import Mechanic, Mechanic_P2, Mechanic_P4
 from hydraulic_thermal import Hydraulic_to_Thermal
 from hydraulic_thermal import Hydraulic_to_Thermal_P2
+from hydraulic_thermal import Hydraulic_to_Thermal_P2_circulo
 from themal_hydraulics import HydraulicThermal
 from data_structures import GeraGrafo
 from analysis import complexity_analysis
@@ -19,8 +20,8 @@ def main():
 
     test_p2 = Hydraulic_to_Thermal(config_ht)
     test_p2.run_problem1(print_info = True, plot=True)
-    test_p2 = Hydraulic_to_Thermal_P2(config_ht)
-    test_p2.run_problem2(plot=False)
+    test_p2 = Hydraulic_to_Thermal_P2_circulo(config_ht)
+    test_p2.run_problem2(plot=True)
     
     return
 
