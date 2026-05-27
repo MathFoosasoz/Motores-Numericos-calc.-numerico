@@ -1081,37 +1081,40 @@ class SolucionadorTermicoIterativo(Thermal):
             print(f"{n[0]:>6} {n[1]:>6} {n[0]*n[1]:>8} {t_mont:>11.4f} {t_resolv:>12.4f} {n_iter:>7} {T_max:>10.4f}   {T_c:>10.4f}")
 
 
+
 class Thermal_H():
+
     def __init__(self, config):
 
         self.N = config["N"]
         self.L = config["L"]
         self.f = config["SOURCE"]
         self.K = config["CONDUCTIVITY"]
-        self.temps = config["BORDER_TEMPS"]
-        
+
         circle_dict = config["CIRCULAR_SOURCE_KNOWN_TEMP_DICT"]
         self.circle_radius = circle_dict["R"]
         self.circle_coords = circle_dict["coords"]
         self.circle_temp = circle_dict["T"]
 
-    @staticmethod
-    def distance(a, b):
-        return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
-    
+        self.temps = config["BORDER_TEMPS"]
+
     def  ij2n(self, i, j):
         return j + i*self.N[0]
     
     def find_square_area(self):
         return (( self.L[0]/(self.N[0] - 1) ) * ( self.L[1]/(self.N[1] - 1) ))
 
+    @staticmethod
+    def distance(a, b):
+        return ((a[0] - b[0])**2 + (a[1] - b[1])**2)**0.5
+
     def get_index_inside_circus(self):
 
         dx = self.L[0]/(self.N[0]-1)
         dy = self.L[1]/(self.N[1]-1)
 
-        center_x = self.circle_coords[0]*self.L[0]
-        center_y = self.circle_coords[1]*self.L[1]
+        center_x = self.circle_coords[0]
+        center_y = self.circle_coords[1]
 
         center_coords = (center_x, center_y)
 
@@ -1158,7 +1161,7 @@ class Thermal_H():
 
         #print(A)
         return A, b
-        
+    
     def solve_system_sparse(self):
         nunk = self.N[0]*self.N[1]
 
@@ -1205,6 +1208,10 @@ class Thermal_H():
                     b[Ic] = (h2 * self.f)/self.K
 
         A_sparse = sparse.coo_matrix((data, (rows, cols)), shape=(nunk, nunk)).tocsr()
-        return spsolve(A_sparse, b)
+        temps = spsolve(A_sparse, b)
+
+        #PlotaPlaca(*self.N, *self.L, temps)
+        #plt.show()
+        return temps
 
     

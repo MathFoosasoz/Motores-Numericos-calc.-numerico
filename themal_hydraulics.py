@@ -34,7 +34,7 @@ class HydraulicThermal():
     def evaluate_coarse(self, method):
         self.interpolator(method)
 
-        Nx_coarse, Ny_coarse = 21, 11
+        Nx_coarse, Ny_coarse = 41, 21
 
         x_coarse = np.linspace(0, self.thermal.L[0], Nx_coarse)
         y_coarse = np.linspace(0, self.thermal.L[1], Ny_coarse)
@@ -67,7 +67,6 @@ class HydraulicThermal():
                 plot_interpolation(results, n)
                 plt.show()
 
-        
         for n in (N_thin, N_thick):
             self.thermal.N = n
             for method in ['nearest', 'linear', 'cubic']:
@@ -83,7 +82,6 @@ class HydraulicThermal():
                     )
 
                     plt.show()
-
     
     def integrar_todas_as_arestas(self, N_subdivisoes, regra='trapezio'):
         """Calcula a temperatura media em todas as arestas simultaneamente
@@ -272,7 +270,7 @@ class HydraulicThermal():
             #influenciam a pressão máxima e a potência consumida na rede.
             
             N_refinada = [241, 121]
-            N_grosseira = [61, 31]
+            N_grosseira = [21, 11]
             
             regras = ['ponto_medio', 'trapezio']
             subdivisoes = [1, 10, 100, 1000]

@@ -355,10 +355,10 @@ def gera_grafico_energia_M_P5(omega_n, c, titulo="Ressonância e Energia Elásti
   plt.show()
 
 def plot_interpolation(results, N):
-  fig, axes = plt.subplots(1, 3, figsize=(20, 4))
+  fig, axes = plt.subplots(1, 3, figsize=(22, 4))
 
   for ax, method in zip(axes, results.keys()):
-      ax.contourf(results[method][0], results[method][1], results[method][2].T, levels=20, cmap='hot')
+      ax.contourf(results[method][0], results[method][1], results[method][2].T, levels=20, cmap='jet')
       ax.set_title(f'{method} - ({N[0]}, {N[1]})')
       plt.colorbar(ax.collections[0], ax=ax)
 
@@ -420,6 +420,28 @@ def plot_hydraulic_thermal_profiles(N, L, T, r_cond):
 
   return fig, axes
 
+def plota_perfis_vertical_horizontal(x_coords, perfil_h, y_mid_val, y_coords, perfil_v, x_mid_val, S0, case):
+    
+    # PROBLEMA P2 ACOPLAMENTO HIDRAULICO TERMICO
+    
+    fig2, axes2 = plt.subplots(1, 2, figsize=(13, 5))
+    fig2.suptitle(f"Perfis térmicos - S0={S0:.0e} ({case})", fontsize=12)
+    
+    # Perfil Horizontal
+    axes2[0].plot(x_coords, perfil_h, 'C0-', linewidth=1.5)
+    axes2[0].set_title(f"Perfil horizontal - y={y_mid_val:.5f} m")
+    axes2[0].set_xlabel("x (m)")
+    axes2[0].set_ylabel("Temperatura (C)")
+    axes2[0].grid(True)
+    
+    # Perfil Vertical
+    axes2[1].plot(y_coords, perfil_v, 'C0-', linewidth=1.5)
+    axes2[1].set_title(f"Perfil vertical - x={x_mid_val:.5f} m")
+    axes2[1].set_xlabel("y (m)")
+    axes2[1].set_ylabel("Temperatura (C)")
+    axes2[1].grid(True)
+    
+    plt.tight_layout()
 
 
 

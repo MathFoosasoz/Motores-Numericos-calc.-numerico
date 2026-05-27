@@ -108,12 +108,12 @@ CONFIG_HT = {
 
     # Thermal 
     "CONDUCTIVITY": 0.25,
-    "SOURCE": 500000,
+    "SOURCE": 1000000,
     "N": (101, 51),
     "L": (0.03, 0.015),
     "BORDER_TEMPS": [30, lambda x,n: 10 + 20*(x/(n[0] - 1)), 10, lambda x,n: 10 + 20*(x/(n[0] - 1))],
     
-    "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.0025, "coords": (2.0025, 0.75), "T": 35},
+    "CIRCULAR_SOURCE_KNOWN_TEMP_DICT": { "R": 0.0025, "coords": (0.0225, 0.0075), "T": 35},
 
     "MULTI_N": [(61, 31), (121, 61), (241, 121)],
     "R_COND_VALUES": [0.00025, 0.0005, 0.001],
