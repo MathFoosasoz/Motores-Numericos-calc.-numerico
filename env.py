@@ -119,3 +119,36 @@ CONFIG_HT = {
     "R_COND_VALUES": [0.00025, 0.0005, 0.001],
     
 }
+
+
+CONFIG_MH = {
+
+    # Hydraulics
+    "LEVELS": 3,
+    "N_INLET": 0,
+    "N_OUTLET": 5,
+    "INLET_PRESSURE": 1.0e4,
+    "INLET_PRESSURES": [5.0e3, 1.0e4, 2.0e4],
+    "CHANNEL_WIDTH": 1000.0e-6,
+    "CHANNEL_WIDTHS": [1000.0e-6, 1250.0e-6, 1500.0e-6, 1750.0e-6],
+    "VISCOSITY": 5.0e-4,
+
+    # Mechanic
+    "N": (51, 51),
+    "MULTI_N": [(51, 51), (101, 101)],
+    "R": 0.0025,
+    "TENSION": 200.0,
+    "DENSITY": 900.0,
+    "THICKNESS": 0.0001,
+    "BETA": 0.1,
+    "N_MODES": 10,
+    "TOLERANCE": 1e-8,
+
+    # Time
+    "DT": 0.025,
+    "DT_VALUES": [0.00625, 0.0125, 0.025, 0.05],
+    "TIME_END": 12.0,
+
+    #Deslocamento de referência adimensional
+    "W0_FACTOR": 0.01,
+}
