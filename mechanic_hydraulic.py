@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy import sparse
 from scipy.sparse.linalg import factorized
 
@@ -381,6 +382,7 @@ class MechanicHydraulic():
                             pressao_inlet=pressao,
                             largura_canal=largura,
                             print_info=print_info,
+                            salvar_campos=True
                         )
                         resultados.append(resultado)
 
@@ -406,3 +408,96 @@ class MechanicHydraulic():
             print("A plotagem ficou fora deste arquivo; use os historicos em self.results.")
 
         return self.resolver_caso_base(print_info=print_info)
+
+def gerar_todos_os_plots(resultados_simulacao):
+    
+        pressões_unicas = sorted(list(set(res["configuracao"]["pressao_inlet"] for res in resultados_simulacao)))
+        
+        grandezas = [
+            ("deslocamento_centro", "Deslocamento Vertical do Ponto Central", "m"),
+            ("pressao_outlet", "Pressão no Nó de Descarga $p_{outlet}$", "Pa"),
+            ("vazao_outlet", "Vazão de Saída $q_{outlet}$", "$m^3/s$"),
+            ("volume_reservatorio", "Volume Acumulado de Fluido no Reservatório", "$m^3$"),
+            ("potencia", "Potência Consumida pelo Sistema", "W")
+        ]
+        
+        estilos_dt = {0.00625: '-', 0.0125: '--', 0.025: ':', 0.05: '-.'}
+        cores_malha = {51: 'tab:blue', 101: 'tab:orange', 21: 'tab:green'} # Ajustado para as dimensões nodais
+
+        for chave, titulo, unidade in grandezas:
+            fig, axes = plt.subplots(1, len(pressões_unicas), figsize=(18, 5), sharex=True)
+            fig.suptitle(f"Evolução Temporal: {titulo}", fontsize=14, fontweight='bold', y=1.02)
+            
+            for idx_p, p_inlet in enumerate(pressões_unicas):
+                ax = axes[idx_p]
+                ax.set_title(f"$P_{{inlet}}$ = {p_inlet:.1e} Pa", fontsize=11)
+                
+                casos_foco = [r for r in resultados_simulacao if r["configuracao"]["pressao_inlet"] == p_inlet]
+                
+                for caso in casos_foco:
+                    N_points = caso["configuracao"]["N"][0]
+                    dt_val = caso["configuracao"]["dt"]
+                    
+                    t_hist = caso["time"]
+                    y_hist = caso[chave]
+                    
+                    label_curva = rf"Malha {N_points}x{N_points}, $\delta t$={dt_val}"
+                    ax.plot(t_hist, y_hist, label=label_curva, 
+                            color=cores_malha.get(N_points, 'black'), 
+                            linestyle=estilos_dt.get(dt_val, '-'))
+                    
+                ax.set_xlabel("Tempo Adimensional ($t$)")
+                ax.set_ylabel(f"{chave.replace('_', ' ').title()} ({unidade})")
+                ax.grid(True, linestyle=':', alpha=0.6)
+                
+                if idx_p == len(pressões_unicas) - 1:
+                    ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=9)
+                    
+            plt.tight_layout()
+            plt.savefig(f"evolucao_{chave}.png", dpi=300, bbox_inches='tight')
+            plt.show()
+
+        plotar_perfil_membrana_corte(resultados_simulacao, cores_malha, estilos_dt)
+
+
+def plotar_perfil_membrana_corte(resultados_simulacao, cores_malha, estilos_dt):
+    
+        pressões = [r["configuracao"]["pressao_inlet"] for r in resultados_simulacao]
+        max_p = max(pressões)
+        
+        caso_fiel = None
+        for r in resultados_simulacao:
+            cfg = r["configuracao"]
+            if cfg["N"][0] == 101 and cfg["pressao_inlet"] == max_p and cfg["dt"] == 0.00625:
+                caso_fiel = r
+                break
+                
+        if caso_fiel is None:
+            caso_fiel = resultados_simulacao[0] # Fallback de segurança
+
+        snapshots = caso_fiel["snapshots_deslocamento"]
+        N0, N1 = caso_fiel["configuracao"]["N"]
+        
+        x_coordenadas = np.linspace(-1, 1, N0)
+        idx_linha_central = N1 // 2
+        
+        plt.figure(figsize=(10, 6))
+        plt.title(f"Perfil Transiente de Deflexão da Membrana (Corte Central Y=0)\n$P_{{inlet}}$ = {caso_fiel['configuracao']['pressao_inlet']:.1e} Pa | Malha {N0}x{N1}", 
+                fontsize=12, fontweight='bold')
+        
+        indices_snapshots = np.linspace(0, len(snapshots) - 1, 6, dtype=int)
+        
+        for idx in indices_snapshots:
+            t_atual, deslocamentos_globais = snapshots[idx]
+            
+            W_2d = deslocamentos_globais.reshape((N1, N0))
+            perfil_central_x = W_2d[idx_linha_central, :]
+            
+            plt.plot(x_coordenadas, perfil_central_x, label=f"Tempo $t$ = {t_atual:.3f}")
+            
+        plt.xlabel("Posição Normalizada na Membrana ($x/R$)")
+        plt.ylabel("Deflexão Real $w$ (m)")
+        plt.grid(True, linestyle=':', alpha=0.6)
+        plt.legend(loc='lower center')
+        plt.savefig("evolucao_perfil_membrana.png", dpi=300, bbox_inches='tight')
+        plt.show()
