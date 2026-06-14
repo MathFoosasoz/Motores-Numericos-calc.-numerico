@@ -369,6 +369,110 @@ class MechanicHydraulic():
             self.print_resumo()
 
         return self.results
+    
+
+    #adicionando o problema 3 aqui
+    def resolver_relaxamento(
+        self,
+        estado_inicial_ex2,
+        dt=0.025,
+        tempo_final=12.0,
+        largura_canal=None,
+        print_info=True
+    ):
+        """
+        Exercício 3: Decaimento instantâneo da pressão de entrada para zero,
+        evoluindo a partir do estado transiente final do Exercício 2.
+        """
+        import time
+        from scipy.sparse.linalg import factorized
+
+        start = time.time()
+        
+        if largura_canal is None:
+            largura_canal = self.largura_canal
+
+        #Monta o sistema global com p_inlet zerado
+        sistema = self.montar_sistema_global(dt, largura_canal)
+        solver = factorized(sistema["A_global"].tocsc())
+
+        n_m = self.num_nodes_membrana
+        n_steps = int(round(tempo_final / dt))
+        idt = 1.0 / dt
+
+        #Inicializa o estado com o FIM do Exercício 2 (passado via argumento)
+        escalas = sistema["escalas"]
+        w = estado_inicial_ex2["deslocamentos_finais"] / escalas["w_ref"]
+        v = estado_inicial_ex2["velocidades_finais"] / escalas["v_ref"]
+        p = estado_inicial_ex2["pressoes_finais"] / escalas["p_ref"]
+
+        # Históricos para o gráfico do problema 3
+        tempos = [0.0]
+        
+        # Mede o estado inicial para guardar t=0 do relaxamento
+        estado_atual = self.medir_estado(w, v, p)
+        deslocamento_centro = [estado_atual["deslocamento_centro"]]
+        pressao_outlet = [estado_atual["pressao_outlet"]]
+        vazao_outlet = [estado_atual["vazao_outlet"]]
+        volume_reservatorio = [estado_atual["volume_reservatorio"]]
+        potencia = [estado_atual["potencia"]]
+
+        # Força o vetor de pressão de entrada a ser rigorosamente ZERO (ex 3)
+        b_pressao_zero = np.zeros(self.num_nodes)
+        # Aplica a condição de contorno na linha correspondente ao inlet
+        b_pressao_zero[self.node_inlet] = 0.0 
+
+        #Loop Transiente de Relaxamento
+        for step in range(1, n_steps + 1):
+            rhs = np.concatenate([
+                idt * w,
+                idt * (sistema["M"] @ v),
+                b_pressao_zero, # p_inlet = 0 aqui!
+            ])
+
+            solucao = solver(rhs)
+            w = solucao[:n_m]
+            v = solucao[n_m:2 * n_m]
+            p = solucao[2 * n_m:]
+
+            estado = self.medir_estado(w, v, p)
+            tempo_atual = step * dt
+
+            tempos.append(tempo_atual)
+            deslocamento_centro.append(estado["deslocamento_centro"])
+            pressao_outlet.append(estado["pressao_outlet"])
+            vazao_outlet.append(estado["vazao_outlet"])
+            volume_reservatorio.append(estado["volume_reservatorio"])
+            potencia.append(estado["potencia"])
+
+        estado_final = self.medir_estado(w, v, p)
+
+        resultados_relaxamento = {
+            "time": np.array(tempos),
+            "deslocamento_centro": np.array(deslocamento_centro),
+            "pressao_outlet": np.array(pressao_outlet),
+            "vazao_outlet": np.array(vazao_outlet),
+            "volume_reservatorio": np.array(volume_reservatorio),
+            "potencia": np.array(potencia),
+            "configuracao": {
+                "N": self.N,
+                "dt": dt,
+                "tempo_final": tempo_final,
+                "largura_canal": largura_canal,
+            },
+            "tempo_execucao": time.time() - start,
+        }
+
+        if print_info:
+            print("\n--- RELAXAMENTO CONCLUÍDO (PROBLEMA 3) ---")
+            print(f"Deslocamento centro inicial: {deslocamento_centro[0]:.4e} m -> Final: {deslocamento_centro[-1]:.4e} m")
+            print(f"Volume inicial: {volume_reservatorio[0]:.4e} m3 -> Final: {volume_reservatorio[-1]:.4e} m3")
+            print(f"Tempo de simulação do relaxamento: {resultados_relaxamento['tempo_execucao']:.4f} s\n")
+
+        return resultados_relaxamento
+
+
+
 
     def resolver_todos_cenarios(self, print_info=True):
         resultados = []
