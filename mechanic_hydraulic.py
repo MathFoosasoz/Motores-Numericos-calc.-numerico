@@ -506,129 +506,270 @@ def plotar_perfil_membrana_corte(resultados_simulacao, cores_malha, estilos_dt):
 class MH_Problema4(MechanicHydraulic):
     def resolver_P4(self, dt=0.0125, tempo_final=12.0):
         print("\n" + "="*50)
-        print("INICIANDO PROBLEMA 4: Oscilação Livre (3º Modo)")
+        print("INICIANDO PROBLEMA 4: Oscilação livre (1° e 3° Modo)")
         print("="*50)
+
+        for mode in [1, 3]:
         
-        #parametros do problema 4
-        self.beta = 0.0              
-        largura_canal = 2000.0e-6  
-        pressao_inlet = 0.0        
+            #parametros do problema 4
+            self.beta = 0.0              
+            largura_canal = 2000.0e-6  
+            pressao_inlet = 0.0        
 
-        print("Montando sistema global acoplado...")
-        sistema = self.montar_sistema_global(dt, largura_canal)
+            print("Montando sistema global acoplado...")
+            sistema = self.montar_sistema_global(dt, largura_canal)
 
-        #Encontrar o 3 modo fundamental da membrana isolada
-        print("Calculando modos de vibração da membrana isolada...")
-        K = sistema["K"]
-        M = sistema["M"]
+            #Encontrar o 3 modo fundamental da membrana isolada
+            print("Calculando modos de vibração da membrana isolada...")
+            K = sistema["K"]
+            M = sistema["M"]
 
-        v0_fixo = np.ones(K.shape[0])
+            v0_fixo = np.ones(K.shape[0])
 
-        eigenvalues, eigenvectors = eigsh(K, k=4, M=M, sigma=0.0, which='LM', v0=v0_fixo)
-        
-        w_modo3 = eigenvectors[:, 2]
-
-        w_modo3 = w_modo3 / np.max(np.abs(w_modo3))
-
-        n_m = self.num_nodes_membrana
-        n_p = self.num_nodes
-        n_steps = int(round(tempo_final / dt))
-        idt = 1.0 / dt
-
-        #condição inicial
-        w = w_modo3.copy()  
-        v = np.zeros(n_m)   
-        p = np.zeros(n_p)
-
-        solver = factorized(sistema["A_global"].tocsc())
-        b_pressao = self.montar_vetor_pressao_inlet(pressao_inlet)
-
-        #no deslocado
-        n_x, n_y = self.N
-        idx_medicao_x = int(3 * n_x / 4) #3/4 do caminho em X
-        idx_medicao_y = int(n_y / 2)     #Metade do caminho em Y
-        no_medicao_w = self.ij2n(idx_medicao_y, idx_medicao_x)
-
-        #no central
-        idx_centro_x = int(n_x / 2)
-        idx_centro_y = int(n_y / 2)
-        no_centro_w = self.ij2n(idx_centro_y, idx_centro_x)
-
-        tempos = [0.0]
-        historico_w_medicao = [w[no_medicao_w]]
-        historico_w_centro = [w[no_centro_w]]
-        historico_p_outlet = [0.0]
-
-        print(f"Iniciando integração no tempo ({n_steps} passos)...")
-        start = time.time()
-
-        for step in range(1, n_steps + 1):
+            eigenvalues, eigenvectors = eigsh(K, k=4, M=M, sigma=0.0, which='LM', v0=v0_fixo)
             
-            rhs = np.concatenate([
-                idt * w,
-                idt * (sistema["M"] @ v),
-                b_pressao,
-            ])
+            w_modo = eigenvectors[:, mode-1]
 
-            solucao = solver(rhs)
-            w = solucao[:n_m]
-            v = solucao[n_m:2 * n_m]
-            p = solucao[2 * n_m:]
+            w_modo = w_modo / np.max(np.abs(w_modo))
 
-            tempos.append(step * dt)
+            n_m = self.num_nodes_membrana
+            n_p = self.num_nodes
+            n_steps = int(round(tempo_final / dt))
+            idt = 1.0 / dt
+
+            #condição inicial
+            w = w_modo.copy()  
+            v = np.zeros(n_m)   
+            p = np.zeros(n_p)
+
+            solver = factorized(sistema["A_global"].tocsc())
+            b_pressao = self.montar_vetor_pressao_inlet(pressao_inlet)
+
+            #no deslocado
+            n_x, n_y = self.N
+            idx_medicao_x = int(3 * n_x / 4) #3/4 do caminho em X
+            idx_medicao_y = int(n_y / 2)     #Metade do caminho em Y
+            no_medicao_w = self.ij2n(idx_medicao_y, idx_medicao_x)
+
+            #no central
+            idx_centro_x = int(n_x / 2)
+            idx_centro_y = int(n_y / 2)
+            no_centro_w = self.ij2n(idx_centro_y, idx_centro_x)
+
+            tempos = [0.0]
+            historico_w_medicao = [w[no_medicao_w]]
+            historico_w_centro = [w[no_centro_w]]
+            historico_p_outlet = [0.0]
+
+            print(f"Iniciando integração no tempo ({n_steps} passos)...")
+            start = time.time()
+
+            for step in range(1, n_steps + 1):
+                
+                rhs = np.concatenate([
+                    idt * w,
+                    idt * (sistema["M"] @ v),
+                    b_pressao,
+                ])
+
+                solucao = solver(rhs)
+                w = solucao[:n_m]
+                v = solucao[n_m:2 * n_m]
+                p = solucao[2 * n_m:]
+
+                tempos.append(step * dt)
+                
+                historico_w_medicao.append(w[no_medicao_w])
+                historico_w_centro.append(w[no_centro_w]) # NOVO
+                historico_p_outlet.append(p[self.node_outlet])
+
+            print(f"Simulação concluida em {time.time() - start:.2f} s.")
             
-            historico_w_medicao.append(w[no_medicao_w])
-            historico_w_centro.append(w[no_centro_w]) # NOVO
-            historico_p_outlet.append(p[self.node_outlet])
+            tempos = np.array(tempos)
+            sinal_w = np.array(historico_w_medicao)
+            sinal_w_centro = np.array(historico_w_centro) # NOVO
 
-        print(f"Simulação concluida em {time.time() - start:.2f} s.")
-        
-        tempos = np.array(tempos)
-        sinal_w = np.array(historico_w_medicao)
-        sinal_w_centro = np.array(historico_w_centro) # NOVO
+            picos, _ = find_peaks(sinal_w)
 
-        picos, _ = find_peaks(sinal_w)
+            if len(picos) > 1:
+                periodos_adim = np.diff(tempos[picos])
+                periodo_sim_adim = np.mean(periodos_adim)
+                freq_sim_rad_adim = (2 * np.pi) / periodo_sim_adim
+            else:
+                freq_sim_rad_adim = 0.0
 
-        if len(picos) > 1:
-            periodos_adim = np.diff(tempos[picos])
-            periodo_sim_adim = np.mean(periodos_adim)
-            freq_sim_rad_adim = (2 * np.pi) / periodo_sim_adim
-        else:
-            freq_sim_rad_adim = 0.0
+            raiz_bessel_11 = 3.83170597
+            erro_perc = abs(freq_sim_rad_adim - raiz_bessel_11) / raiz_bessel_11 * 100
 
-        raiz_bessel_11 = 3.83170597
-        erro_perc = abs(freq_sim_rad_adim - raiz_bessel_11) / raiz_bessel_11 * 100
+            #condicao da membrana
+            W_2d = w_modo.reshape((n_y, n_x))
+            plt.figure(figsize=(6, 5))
+            plt.imshow(W_2d, extent=[-1, 1, -1, 1], origin='lower', cmap='seismic')
+            plt.colorbar(label='Amplitude Adimensional')
+            plt.title(f"Condição Inicial: {mode}º Modo")
+            plt.xlabel("x / R")
+            plt.ylabel("y / R")
+            plt.show()
 
-        #condicao da membrana
-        W_2d = w_modo3.reshape((n_y, n_x))
-        plt.figure(figsize=(6, 5))
-        plt.imshow(W_2d, extent=[-1, 1, -1, 1], origin='lower', cmap='seismic')
-        plt.colorbar(label='Amplitude Adimensional')
-        plt.title("Condição Inicial: 3º Modo (Antissimétrico)")
-        plt.xlabel("x / R")
-        plt.ylabel("y / R")
-        plt.show()
+            #deslocamento no central vs no lateral
+            plt.figure(figsize=(10, 4))
+            plt.plot(tempos, sinal_w, label='Nó lateral (Fora do eixo)', color='tab:blue')
+            plt.plot(tempos, sinal_w_centro, label='Nó central (Sobre a linha nodal)', color='tab:red', linestyle='--')
+            plt.axhline(0, color='black', linewidth=0.8, linestyle='--')
+            plt.title(f"Deslocamento Transiente: Nó Lateral vs. Nó Central\nErro Frequência: {erro_perc:.2f}% (Malha {n_x}x{n_y}) Modo {mode}")
+            plt.xlabel("Tempo Adimensional ($t$)")
+            plt.ylabel("Deslocamento Adimensional ($\hat{w}$)")
+            plt.legend(loc='upper right')
+            plt.grid(True, linestyle=':', alpha=0.6)
+            plt.show()
 
-        #deslocamento no central vs no lateral
-        plt.figure(figsize=(10, 4))
-        plt.plot(tempos, sinal_w, label='Nó lateral (Fora do eixo)', color='tab:blue')
-        plt.plot(tempos, sinal_w_centro, label='Nó central (Sobre a linha nodal)', color='tab:red', linestyle='--')
-        plt.axhline(0, color='black', linewidth=0.8, linestyle='--')
-        plt.title(f"Deslocamento Transiente: Nó Lateral vs. Nó Central\nErro Frequência: {erro_perc:.2f}% (Malha {n_x}x{n_y})")
-        plt.xlabel("Tempo Adimensional ($t$)")
-        plt.ylabel("Deslocamento Adimensional ($\hat{w}$)")
-        plt.legend(loc='upper right')
-        plt.grid(True, linestyle=':', alpha=0.6)
-        plt.show()
-
-        #pressao no outlet
-        plt.figure(figsize=(10, 4))
-        plt.plot(tempos, historico_p_outlet, color='orange', label='Pressão Outlet ($p_{outlet}$)')
-        plt.title("Pressão no Nó de Descarga (Ausência de oscilações)")
-        plt.xlabel("Tempo Adimensional ($t$)")
-        plt.ylabel("Pressão Adimensional ($\hat{p}$)")
-        plt.legend(loc='upper right')
-        plt.grid(True, linestyle=':', alpha=0.6)
-        plt.show()
+            #pressao no outlet
+            plt.figure(figsize=(10, 4))
+            plt.plot(tempos, historico_p_outlet, color='orange', label='Pressão Outlet ($p_{outlet}$)')
+            plt.title(f"Pressão no Nó de Descarga. Modo: {mode}")
+            plt.xlabel("Tempo Adimensional ($t$)")
+            plt.ylabel("Pressão Adimensional ($\hat{p}$)")
+            plt.legend(loc='upper right')
+            plt.grid(True, linestyle=':', alpha=0.6)
+            plt.show()
 
         return freq_sim_rad_adim, raiz_bessel_11
+    
+
+class MH_Problema5(MechanicHydraulic):
+    def resolver_P5(self, dt=0.0125, tempo_final=12.0):
+
+        print("\n" + "="*50)
+        print("INICIANDO PROBLEMA 5: Oscilação forçada (1° e 3° Modo)")
+        print("="*50)
+
+        for mode in [1, 3]:
+
+            #parametros do problema 4 e 5
+            self.beta = 0.0              
+            largura_canal = 2000.0e-6  
+            pressao_inlet = 5000      
+
+            print("Montando sistema global acoplado...")
+            sistema = self.montar_sistema_global(dt, largura_canal)
+
+            #Encontrar o 3 modo fundamental da membrana isolada
+            print("Calculando modos de vibração da membrana isolada...")
+            K = sistema["K"]
+            M = sistema["M"]
+
+            v0_fixo = np.ones(K.shape[0])
+
+            eigenvalues, eigenvectors = eigsh(K, k=4, M=M, sigma=0.0, which='LM', v0=v0_fixo)
+            
+            w_modo = eigenvectors[:, mode-1]
+
+            omega_3 = np.sqrt(eigenvalues[mode-1])
+
+            w_modo = w_modo / np.max(np.abs(w_modo))
+
+            n_m = self.num_nodes_membrana
+            n_p = self.num_nodes
+            n_steps = int(round(tempo_final / dt))
+            idt = 1.0 / dt
+
+            #condição inicial
+            w = w_modo.copy()  
+            v = np.zeros(n_m)   
+            p = np.zeros(n_p)
+
+            solver = factorized(sistema["A_global"].tocsc())
+            b_pressao = self.montar_vetor_pressao_inlet(pressao_inlet)
+
+            #no deslocado
+            n_x, n_y = self.N
+            idx_medicao_x = int(3 * n_x / 4) #3/4 do caminho em X
+            idx_medicao_y = int(n_y / 2)     #Metade do caminho em Y
+            no_medicao_w = self.ij2n(idx_medicao_y, idx_medicao_x)
+
+            #no central
+            idx_centro_x = int(n_x / 2)
+            idx_centro_y = int(n_y / 2)
+            no_centro_w = self.ij2n(idx_centro_y, idx_centro_x)
+
+            tempos = [0.0]
+            historico_w_medicao = [w[no_medicao_w]]
+            historico_w_centro = [w[no_centro_w]]
+            historico_p_outlet = [0.0]
+
+            print(f"Iniciando integração no tempo ({n_steps} passos)...")
+            start = time.time()
+
+            for step in range(1, n_steps + 1):
+
+                b_forced = b_pressao * np.cos(omega_3 * (step-1) * dt)
+                
+                rhs = np.concatenate([
+                    idt * w,
+                    idt * (sistema["M"] @ v),
+                    b_forced,
+                ])
+
+                solucao = solver(rhs)
+                w = solucao[:n_m]
+                v = solucao[n_m:2 * n_m]
+                p = solucao[2 * n_m:]
+
+                tempos.append(step * dt)
+                
+                historico_w_medicao.append(w[no_medicao_w])
+                historico_w_centro.append(w[no_centro_w]) # NOVO
+                historico_p_outlet.append(p[self.node_outlet])
+
+            print(f"Simulação concluida em {time.time() - start:.2f} s.")
+            
+            tempos = np.array(tempos)
+            sinal_w = np.array(historico_w_medicao)
+            sinal_w_centro = np.array(historico_w_centro) # NOVO
+
+            picos, _ = find_peaks(sinal_w)
+
+            if len(picos) > 1:
+                periodos_adim = np.diff(tempos[picos])
+                periodo_sim_adim = np.mean(periodos_adim)
+                freq_sim_rad_adim = (2 * np.pi) / periodo_sim_adim
+            else:
+                freq_sim_rad_adim = 0.0
+
+            raiz_bessel_11 = 3.83170597
+            erro_perc = abs(freq_sim_rad_adim - raiz_bessel_11) / raiz_bessel_11 * 100
+
+            #condicao da membrana
+            W_2d = w_modo.reshape((n_y, n_x))
+            plt.figure(figsize=(6, 5))
+            plt.imshow(W_2d, extent=[-1, 1, -1, 1], origin='lower', cmap='seismic')
+            plt.colorbar(label='Amplitude Adimensional')
+            plt.title(f"Condição Inicial: {mode}º Modo")
+            plt.xlabel("x / R")
+            plt.ylabel("y / R")
+            plt.show()
+
+            #deslocamento no central vs no lateral
+            plt.figure(figsize=(10, 4))
+            plt.plot(tempos, sinal_w, label='Nó lateral (Fora do eixo)', color='tab:blue')
+            plt.plot(tempos, sinal_w_centro, label='Nó central (Sobre a linha nodal)', color='tab:red', linestyle='--')
+            plt.axhline(0, color='black', linewidth=0.8, linestyle='--')
+            plt.title(f"Deslocamento Transiente: Nó Lateral vs. Nó Central\nErro Frequência: {erro_perc:.2f}% (Malha {n_x}x{n_y}) Modo: {mode}")
+            plt.xlabel("Tempo Adimensional ($t$)")
+            plt.ylabel("Deslocamento Adimensional ($\hat{w}$)")
+            plt.legend(loc='upper right')
+            plt.grid(True, linestyle=':', alpha=0.6)
+            plt.show()
+
+            #pressao no outlet
+            plt.figure(figsize=(10, 4))
+            plt.plot(tempos, historico_p_outlet, color='orange', label='Pressão Outlet ($p_{outlet}$)')
+            plt.title(f"Pressão no Nó de Descarga. Modo: {mode}")
+            plt.xlabel("Tempo Adimensional ($t$)")
+            plt.ylabel("Pressão Adimensional ($\hat{p}$)")
+            plt.legend(loc='upper right')
+            plt.grid(True, linestyle=':', alpha=0.6)
+            plt.show()
+
+        return freq_sim_rad_adim, raiz_bessel_11
+
