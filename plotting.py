@@ -475,3 +475,60 @@ def plot_arestas_cromaticas_hidraulics(conec, Xno, T_nodes, T_arestas, method, N
     ax.set_aspect('equal')
     ax.set_title(titulo, fontsize=12, pad=15)
     plt.tight_layout()
+
+
+
+#adicionando aqui o grafico do problema 3
+def plot_relaxamento_problema3(res_relaxamento, filename="relaxamento_problema3.png"):
+    """
+    Gera as curvas de evolução temporal para o Problema 3 com correção de layout.
+    """
+    import matplotlib.pyplot as plt
+    
+    t = res_relaxamento["time"]
+    
+    fig, axs = plt.subplots(3, 2, figsize=(14, 12))
+    
+    fig.suptitle('Evolução Temporal do Relaxamento Numérico ($p_{inlet} = 0$)\nCapítulo 5 - Problema 3', 
+                 fontsize=14, fontweight='bold', y=0.98)
+
+    # 1. Pressão de saída p_outlet(t)
+    axs[0, 0].plot(t, res_relaxamento["pressao_outlet"], 'r-', linewidth=1.5)
+    axs[0, 0].set_title("Pressão de Saída ($p_{outlet}$)", fontsize=11, fontweight='bold', pad=10)
+    axs[0, 0].set_ylabel("Pressão (Pa)")
+    axs[0, 0].grid(True, linestyle=':', alpha=0.6)
+
+    # 2. Vazão de saída q_outlet(t)
+    axs[0, 1].plot(t, res_relaxamento["vazao_outlet"], 'b-', linewidth=1.5)
+    axs[0, 1].set_title("Vazão de Saída ($q_{outlet}$)", fontsize=11, fontweight='bold', pad=10)
+    axs[0, 1].set_ylabel("Vazão ($m^3/s$)")
+    axs[0, 1].grid(True, linestyle=':', alpha=0.6)
+
+    # 3. Deflexão no ponto central w_centro(t)
+    axs[1, 0].plot(t, res_relaxamento["deslocamento_centro"], 'g-', linewidth=1.5)
+    axs[1, 0].set_title("Deflexão no Ponto Central", fontsize=11, fontweight='bold', pad=10)
+    axs[1, 0].set_ylabel("Deslocamento (m)")
+    axs[1, 0].grid(True, linestyle=':', alpha=0.6)
+
+    # 4. Volume do reservatório V(t)
+    axs[1, 1].plot(t, res_relaxamento["volume_reservatorio"], 'm-', linewidth=1.5)
+    axs[1, 1].set_title("Volume do Reservatório de Fluido", fontsize=11, fontweight='bold', pad=10)
+    axs[1, 1].set_ylabel("Volume ($m^3$)")
+    axs[1, 1].grid(True, linestyle=':', alpha=0.6)
+
+    # 5. Potência consumida/dissipada W(t)
+    axs[2, 0].plot(t, res_relaxamento["potencia"], 'k-', linewidth=1.5)
+    axs[2, 0].set_title("Potência Consumida/Dissipada", fontsize=11, fontweight='bold', pad=10)
+    axs[2, 0].set_xlabel("Tempo Adimensional ($t$)", fontsize=10)
+    axs[2, 0].set_ylabel("Potência (W)")
+    axs[2, 0].grid(True, linestyle=':', alpha=0.6)
+
+    axs[2, 1].axis('off')
+
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    
+    plt.subplots_adjust(hspace=0.35, wspace=0.25)
+
+    if filename:
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+    plt.show()
