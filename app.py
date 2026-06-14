@@ -9,26 +9,26 @@ def main():
 
     config_mh = env.CONFIG_MH
 
-    #simulador = MechanicHydraulic(config_mh)
+    simulador = MechanicHydraulic(config_mh)
 
-    #print("="*8 + "Iniciando a varredura transiente de todos os cenários" + "="*8)
+    print("="*8 + "Iniciando a varredura transiente de todos os cenários" + "="*8)
 
-    #todos_resultados = simulador.resolver_todos_cenarios(print_info=False)
+    todos_resultados = simulador.resolver_todos_cenarios(print_info=False)
 
-    #print("Simulações finalizadas. Gerando arquivos de plotagem...")
+    print("Simulações finalizadas. Gerando arquivos de plotagem...")
 
-    #gerar_todos_os_plots(todos_resultados)
-    #print("Gráficos salvos")
+    gerar_todos_os_plots(todos_resultados)
+    print("Gráficos salvos")
     
-    config_p4 = env.CONFIG_MH.copy()
+    #config_p4 = env.CONFIG_MH.copy()
     
-    config_p4["N"] = (101, 101) 
+    #config_p4["N"] = (101, 101) 
     
-    solver_p4 = MH_Problema4(config_p4)
-    solver_p4.resolver_P4(dt=0.0125, tempo_final=12.0)
+    #solver_p4 = MH_Problema4(config_p4)
+    #solver_p4.resolver_P4(dt=0.0125, tempo_final=12.0)
 
-    solver_p5 = MH_Problema5(config_p4)
-    solver_p5.resolver_P5()
+    #solver_p5 = MH_Problema5(config_p4)
+    #solver_p5.resolver_P5()
     
     return
 
