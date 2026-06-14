@@ -13,12 +13,12 @@ def main():
 
     print("="*8 + "Iniciando a varredura transiente de todos os cenários" + "="*8)
 
-    todos_resultados = simulador.resolver_todos_cenarios(print_info=False)
+    todos_resultados = simulador.resolver_todos_cenarios(print_info=True)
 
-    print("Simulações finalizadas. Gerando arquivos de plotagem...")
+    #print("Simulações finalizadas. Gerando arquivos de plotagem...")
 
-    gerar_todos_os_plots(todos_resultados)
-    print("Gráficos salvos")
+    #gerar_todos_os_plots(todos_resultados)
+    #print("Gráficos salvos")
     
     #config_p4 = env.CONFIG_MH.copy()
     
