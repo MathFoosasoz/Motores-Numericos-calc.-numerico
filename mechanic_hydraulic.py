@@ -730,13 +730,21 @@ class MH_Problema4(MechanicHydraulic):
                 historico_w_centro.append(w[no_centro_w]) # NOVO
                 historico_p_outlet.append(p[self.node_outlet])
 
+            # ... (código anterior)
             print(f"Simulação concluida em {time.time() - start:.2f} s.")
             
             tempos = np.array(tempos)
             sinal_w = np.array(historico_w_medicao)
-            sinal_w_centro = np.array(historico_w_centro) # NOVO
+            sinal_w_centro = np.array(historico_w_centro)
 
-            picos, _ = find_peaks(sinal_w)
+            if mode == 1:
+                raiz_analitica = 2.40482556      
+                sinal_analise = sinal_w_centro   
+            else:
+                raiz_analitica = 3.83170597      
+                sinal_analise = sinal_w          
+
+            picos, _ = find_peaks(sinal_analise)
 
             if len(picos) > 1:
                 periodos_adim = np.diff(tempos[picos])
@@ -745,9 +753,8 @@ class MH_Problema4(MechanicHydraulic):
             else:
                 freq_sim_rad_adim = 0.0
 
-            raiz_bessel_11 = 3.83170597
-            erro_perc = abs(freq_sim_rad_adim - raiz_bessel_11) / raiz_bessel_11 * 100
-
+            erro_perc = abs(freq_sim_rad_adim - raiz_analitica) / raiz_analitica * 100
+            
             #condicao da membrana
             W_2d = w_modo.reshape((n_y, n_x))
             plt.figure(figsize=(6, 5))
@@ -780,7 +787,7 @@ class MH_Problema4(MechanicHydraulic):
             plt.grid(True, linestyle=':', alpha=0.6)
             plt.show()
 
-        return freq_sim_rad_adim, raiz_bessel_11
+        return freq_sim_rad_adim, raiz_analitica
     
 
 class MH_Problema5(MechanicHydraulic):
@@ -872,9 +879,16 @@ class MH_Problema5(MechanicHydraulic):
             
             tempos = np.array(tempos)
             sinal_w = np.array(historico_w_medicao)
-            sinal_w_centro = np.array(historico_w_centro) # NOVO
+            sinal_w_centro = np.array(historico_w_centro)
 
-            picos, _ = find_peaks(sinal_w)
+            if mode == 1:
+                raiz_analitica = 2.40482556
+                sinal_analise = sinal_w_centro
+            else:
+                raiz_analitica = 3.83170597
+                sinal_analise = sinal_w
+
+            picos, _ = find_peaks(sinal_analise)
 
             if len(picos) > 1:
                 periodos_adim = np.diff(tempos[picos])
@@ -883,8 +897,7 @@ class MH_Problema5(MechanicHydraulic):
             else:
                 freq_sim_rad_adim = 0.0
 
-            raiz_bessel_11 = 3.83170597
-            erro_perc = abs(freq_sim_rad_adim - raiz_bessel_11) / raiz_bessel_11 * 100
+            erro_perc = abs(freq_sim_rad_adim - raiz_analitica) / raiz_analitica * 100
 
             #condicao da membrana
             W_2d = w_modo.reshape((n_y, n_x))
@@ -918,4 +931,4 @@ class MH_Problema5(MechanicHydraulic):
             plt.grid(True, linestyle=':', alpha=0.6)
             plt.show()
 
-        return freq_sim_rad_adim, raiz_bessel_11
+        return freq_sim_rad_adim, raiz_analitica
