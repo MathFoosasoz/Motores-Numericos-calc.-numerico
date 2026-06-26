@@ -5,69 +5,32 @@ from mechanic_hydraulic import MechanicHydraulic, gerar_todos_os_plots, plotar_p
 from data_structures import GeraGrafo
 from analysis import complexity_analysis
 from plotting import plot_relaxamento_problema3
+from analise_falhas import RandomFail, resolver_vazao_estacionaria, avaliar_convergencia_monte_carlo, varredura_probabilidade_individual
 
 def main():
 
-    config_mh = env.CONFIG_MH
+    #============================= Monte Carlo ========================
+    Xno, conec = GeraGrafo(env.CONFIG_FALHAS["LEVELS"]);
+    Xno = Xno * 0.001
+    config_base = env.CONFIG_FALHAS
 
-    simulador = MechanicHydraulic(config_mh)
-
-    #print("="*8 + "Iniciando a varredura transiente de todos os cenários" + "="*8)
-
-    #todos_resultados = simulador.resolver_todos_cenarios(print_info=True)
-
-    #print("Simulações finalizadas. Gerando arquivos de plotagem...")
-
-    #gerar_todos_os_plots(todos_resultados)
-    #print("Gráficos salvos")
+    print("=== CALIBRANDO PONTO DE OPERAÇÃO OPERACIONAL ===")
+    config_base["INLET_PRESSURE"] = 1.0e4 
+    vazao_teste = resolver_vazao_estacionaria(conec, Xno, config_base, C_estocastico=None)
     
-    #config_p4 = env.CONFIG_MH.copy()
+    fator_pressao = 2.0e-5 / vazao_teste
+    config_base["INLET_PRESSURE"] = 1.0e4 * fator_pressao
     
-    #config_p4["N"] = (101, 101) 
-    
-    #solver_p4 = MH_Problema4(config_p4)
-    #solver_p4.resolver_P4(dt=0.0125, tempo_final=12.0)
-
-    #solver_p5 = MH_Problema5(config_p4)
-    #solver_p5.resolver_P5()
-    
-    # ==============================================================================
-    # COMENTADO PARA NÃO RODAR A VARREDURA DEMORADA DO EX 2 TODA VEZ:
-    # ==============================================================================
-    # print("="*8 + "Iniciando a varredura transiente de todos os cenários" + "="*8)
-   
-    # todos_resultados = simulador.resolver_todos_cenarios(print_info=False)
-   
-    # print("Simulações finalizadas. Gerando arquivos de plotagem...")
-   
-    # gerar_todos_os_plots(todos_resultados)
-    # print("Gráficos salvos")
-    # ==============================================================================
-
-    print("\n" + "="*8 + " [EXERCÍCIO 2] Obtendo o estado inicial inflado (Malha 51x51, dt=0.025) " + "="*8)
-    #Roda o caso base uma vez com as restrições do enunciado para gerar o ponto de partida (estado inflado)
-    estado_inflado_ex2 = simulador.resolver_caso_base(
-        N=(51, 51),
-        dt=0.025,
-        tempo_final=config_mh["TIME_END"], 
-        pressao_inlet=config_mh["INLET_PRESSURE"], 
-        largura_canal=config_mh["CHANNEL_WIDTH"],
-        print_info=True
-    )
-
-    print("\n" + "="*8 + " [EXERCÍCIO 3] Iniciando simulação de relaxamento (P_inlet = 0) " + "="*8)
-    resultado_problema3 = simulador.resolver_relaxamento(
-        estado_inicial_ex2=estado_inflado_ex2,
-        dt=0.025,
-        tempo_final=12.0, 
-        largura_canal=config_mh["CHANNEL_WIDTH"],
-        print_info=True
-    )
-
-    print("Gerando e salvando os gráficos temporais do Exercício 3...")
-    plot_relaxamento_problema3(resultado_problema3, filename="relaxamento_malha51_dt0025.png")
-    print("Gráficos salvos com sucesso!")
-
+    vazao_limpa = resolver_vazao_estacionaria(conec, Xno, config_base, C_estocastico=None)
+    print(f"Pressão calibrada para o ensaio:       {config_base['INLET_PRESSURE']:.2f} Pa")
+    print(f"Vazão calculada para a rede sem falhas: {vazao_limpa:.5e} m³/s")
+    print(f"Limite crítico de falha do enunciado:  {config_base['V_CRITIC']:.5e} m³/s")
+    print(f"A rede limpa falha? {vazao_limpa < config_base['V_CRITIC']}")
+    print("================================================\n")
+ 
+    print("Disparando loops estocásticos de Monte Carlo...")
+    N_convergido = avaliar_convergencia_monte_carlo(conec, Xno, config_base, p_O=0.35, f_obs=5, N_max=4000)
+    varredura_probabilidade_individual(conec, Xno, config_base, N_estatistico=N_convergido)
 
     return
 

@@ -152,3 +152,21 @@ CONFIG_MH = {
     #Deslocamento de referência adimensional
     "W0_FACTOR": 0.01,
 }
+
+CONFIG_FALHAS = {
+    "LEVELS": 3,
+
+    "N_INLET": 0,
+    "N_OUTLET": 5,
+    "INLET_PRESSURE": 2.0e4,
+    "INLET_FLOW": 0.0,
+    "OUTLET":0.0,
+
+    "PIPE_AREA": 3.0e-3,
+    "VISCOSITY": 0.001,
+
+    "V_CRITIC": 1.25e-5,
+    "N_MAX_CONVERGENCE": 4000,
+    "SEVERITIES": [5, 10],
+    "P_O_RANGE": (0.05, 0.65, 13)
+}
