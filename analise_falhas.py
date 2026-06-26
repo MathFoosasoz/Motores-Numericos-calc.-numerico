@@ -86,7 +86,6 @@ def avaliar_convergencia_monte_carlo(conec, Xno, config_base, p_O=0.35, f_obs=5,
     return N_max
 
 def varredura_probabilidade_individual(conec, Xno, config_base, N_estatistico=4000):
-    # Puxa os dados da tupla configurada no .env (inicio, fim, quantidade de pontos)
     inicio, fim, pontos = config_base["P_O_RANGE"]
     p_O_valores = np.linspace(inicio, fim, pontos)
     

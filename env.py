@@ -162,7 +162,7 @@ CONFIG_FALHAS = {
     "INLET_FLOW": 0.0,
     "OUTLET":0.0,
 
-    "PIPE_AREA": 3.0e-3,
+    "PIPE_AREA": 0.00000025,
     "VISCOSITY": 0.001,
 
     "V_CRITIC": 1.25e-5,
