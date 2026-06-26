@@ -28,7 +28,7 @@ def main():
     print(f"A rede limpa falha? {vazao_limpa < config_base['V_CRITIC']}")
     print("================================================\n")
  
-    print("Disparando loops estocásticos de Monte Carlo...")
+    print("Disparando loops estocásticos de Monte Carlo")
     N_convergido = avaliar_convergencia_monte_carlo(conec, Xno, config_base, p_O=0.35, f_obs=5, N_max=4000)
     varredura_probabilidade_individual(conec, Xno, config_base, N_estatistico=N_convergido)
 
