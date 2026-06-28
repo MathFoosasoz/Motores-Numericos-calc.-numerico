@@ -532,3 +532,33 @@ def plot_relaxamento_problema3(res_relaxamento, filename="relaxamento_problema3.
     if filename:
         plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
+
+def plot_aprox_dados(titulo, dados_reais_x, dados_reais_y, dados_interpolados_x, dados_interpolados_y):
+  plt.figure(figsize=(20, 4)) 
+  plt.scatter(dados_interpolados_x, dados_interpolados_y, color='blue')
+  plt.scatter(dados_reais_x, dados_reais_y, color='red')
+  plt.xlabel("Tempo (s)")
+  plt.ylabel("Pot (W)")
+  plt.title(titulo)
+  plt.grid(True)
+  plt.show()
+
+def plot_fitting(graus, erros, erros_ruido):
+    colunas = ["Grau polinomial", "Erro global (sem ruido)", "Erro global (com ruido)"]
+
+    dados = [[f"{int(g)}", f"{e:.4f}", f"{e_r:.4f}"]  for g, e, e_r in zip(graus, erros, erros_ruido)]
+
+    fig, ax = plt.subplots()
+    ax.axis('off')
+
+    tabela = ax.table(
+        cellText = dados,
+        colLabels = colunas,
+        loc = 'center',
+        cellLoc = 'center'
+    )
+
+    tabela.auto_set_font_size(False)
+    tabela.set_fontsize(10)
+    tabela.scale(1.2, 1.8)
+    plt.show()

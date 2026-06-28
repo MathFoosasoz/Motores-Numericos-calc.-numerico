@@ -1,10 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import CubicSpline, interp1d
+from scipy.sparse.linalg import factorized
 import time
-import env
 
 from data_structures import GeraGrafo
 from hydraulics import Hydraulics_p3
+from mechanic_hydraulic import MechanicHydraulic
+from plotting import plot_aprox_dados, plot_fitting
 
 def RandomFail(C_original , p_0, f_obs):
 
@@ -123,3 +126,183 @@ def varredura_probabilidade_individual(conec, Xno, config_base, N_estatistico=40
     plt.legend(loc='upper left')
     plt.savefig("curva_vulnerabilidade_convergida.png", dpi=300, bbox_inches='tight')
     plt.show()
+
+class aprox_dados():
+
+    def __init__(self, config):
+        self.N = (81, 161)
+        config["N"] = self.N
+
+        self.dt = 0.05
+        config["DT"] = self.dt
+
+        self.time_end = 4
+        config["TIME_END"] = self.time_end
+
+        self.channel_width = config["CHANNEL_WIDTH"]
+        self.inlet_pressure = config["INLET_PRESSURE"]
+
+        self.mh = MechanicHydraulic(config)
+
+        self.known = np.linspace(0, 100*self.time_end, int(self.time_end/self.dt) + 1)
+        self.unknown_full = np.linspace(0, 100*self.time_end, 5 * int(self.time_end/self.dt) + 1)
+        self.unknown = self.unknown_full[~np.isin(self.unknown_full, self.known)]
+
+        self.known /= 100
+        self.unknown /= 100
+
+        self.potencia = self.pot()
+        self.potencia_full = self.pot(dt = 0.01)
+
+        self.potencia_com_ruido = self.pot(ruido = True)
+        self.potencia_com_ruido_full = self.pot(ruido = True, dt = 0.01)
+
+    def interpolação_linear(self, potencia = None):
+        if potencia is None:
+            potencia = self.potencia
+
+        linear_interp = interp1d(self.known, potencia)
+        potencia_full = linear_interp(self.unknown)
+
+        return potencia_full
+    
+    def interpolação_cubica(self, potencia = None):
+        if potencia is None:
+            potencia = self.potencia
+
+        cubic_interp = CubicSpline(self.known, potencia)
+        potencia_full = cubic_interp(self.unknown)
+
+        return potencia_full
+    
+    def regressão_polinomial(self, potencia_full = None, potencia = None):
+        potencias = []
+        errs = []
+
+        if potencia_full is None:
+            potencia_full = self.potencia_full
+
+        if potencia is None:
+            potencia = self.potencia
+        
+        for m in range(3, 16): 
+            params = np.polynomial.polynomial.Polynomial.fit(self.known, potencia, m)
+            pot_regression = params(self.unknown)
+            err = 0.0
+
+            sub = 0
+            for i in range(len(potencia_full)):
+                if i%5 == 0:
+                    sub += 1
+                    continue
+
+                err += (pot_regression[i - sub] - potencia_full[i])**2
+
+            potencias.append(pot_regression)
+            errs.append(np.sqrt(err))
+
+        return potencias, errs
+    
+    def pot(self, ruido = False, dt = None):
+
+        if dt == None:
+            dt = self.dt
+
+        sistema = self.mh.montar_sistema_global(dt, self.channel_width)
+        solver = factorized(sistema["A_global"].tocsc())
+
+        n_m = self.mh.num_nodes_membrana
+        n_steps = int(round(self.time_end / dt))
+        idt = 1.0 / dt
+
+        w = np.zeros(n_m)
+        v = np.zeros(n_m)
+        p = np.zeros(self.mh.num_nodes)
+
+        potencia = [0.0]
+        for _ in range(1, n_steps + 1):
+
+            p_inlet = self.inlet_pressure*(0.85 + 0.3 * np.random.rand()) if ruido else self.inlet_pressure
+
+            b_pressao = self.mh.montar_vetor_pressao_inlet(p_inlet)
+
+            rhs = np.concatenate([
+                idt * w,
+                idt * (sistema["M"] @ v),
+                b_pressao,
+            ])
+
+            solucao = solver(rhs)
+            w = solucao[:n_m]
+            v = solucao[n_m:2 * n_m]
+            p = solucao[2 * n_m:]
+
+            estado = self.mh.medir_estado(w, v, p)
+            potencia.append(estado["potencia"])
+
+        return np.array(potencia)
+    
+
+    def run(self):
+    
+        pot_L = self.interpolação_linear()
+        pot_L_ruido = self.interpolação_linear(self.potencia_com_ruido)
+
+        plot_aprox_dados(
+            "Interpolação linear (sem ruido)",
+            self.known,
+            self.potencia,
+            self.unknown,
+            pot_L
+        )
+
+        plot_aprox_dados(
+            "Interpolação linear (com ruido)",
+            self.known,
+            self.potencia_com_ruido,
+            self.unknown,
+            pot_L_ruido
+        )
+
+        pot_C = self.interpolação_cubica()
+        pot_C_ruido = self.interpolação_cubica(self.potencia_com_ruido)
+
+        plot_aprox_dados(
+            "Interpolação cúbica (sem ruido)",
+            self.known,
+            self.potencia,
+            self.unknown,
+            pot_C
+        )
+
+        plot_aprox_dados(
+            "Interpolação cúbica (com ruido)",
+            self.known,
+            self.potencia_com_ruido,
+            self.unknown,
+            pot_C_ruido
+        )
+
+        pots_poly, errs = self.regressão_polinomial()
+        pots_poly_ruido, errs_ruido = self.regressão_polinomial(self.potencia_com_ruido_full, self.potencia_com_ruido)
+
+        for index, pot_poly in enumerate(pots_poly):
+            plot_aprox_dados(
+                f"Regressão polinomial (sem ruido) m = {index+3} e = {errs[index]:.4f}",
+                self.known,
+                self.potencia,
+                self.unknown,
+                pot_poly
+            )
+
+        for index, pot_poly_ruido in enumerate(pots_poly_ruido):
+            plot_aprox_dados(
+                f"Regressão polinomial (com ruido) m = {index+3} e = {errs_ruido[index]:.4f}",
+                self.known,
+                self.potencia_com_ruido,
+                self.unknown,
+                pot_poly_ruido
+            )
+
+        plot_fitting(np.linspace(3, 15, 13), errs, errs_ruido)
+
