@@ -5,7 +5,7 @@ from mechanic_hydraulic import MechanicHydraulic, gerar_todos_os_plots, plotar_p
 from data_structures import GeraGrafo
 from analysis import complexity_analysis
 from plotting import plot_relaxamento_problema3
-from analise_falhas import RandomFail, resolver_vazao_estacionaria, avaliar_convergencia_monte_carlo, varredura_probabilidade_individual
+from analise_falhas import RandomFail, resolver_vazao_estacionaria, avaliar_convergencia_monte_carlo, varredura_probabilidade_individual, executar_monte_carlo_dinamico
 
 def main():
 
@@ -31,6 +31,10 @@ def main():
     print("Disparando loops estocásticos de Monte Carlo")
     N_convergido = avaliar_convergencia_monte_carlo(conec, Xno, config_base, p_O=0.35, f_obs=5, N_max=4000)
     varredura_probabilidade_individual(conec, Xno, config_base, N_estatistico=N_convergido)
+
+    
+    #======================== Monte Carlo - Problema 2 ========================
+    executar_monte_carlo_dinamico(p_O=0.35, f_obs=5, N=2000, plot=True)
 
     return
 
