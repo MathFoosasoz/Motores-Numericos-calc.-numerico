@@ -6,7 +6,7 @@ from data_structures import GeraGrafo
 from analysis import complexity_analysis
 from plotting import plot_relaxamento_problema3
 from analise_falhas import RandomFail, resolver_vazao_estacionaria, avaliar_convergencia_monte_carlo, varredura_probabilidade_individual
-from sensitivity_analysis import P2_3_GD, prob_base_3_GD
+from P2_PARTE_3_GD import P2_3_GD, prob_base_3_GD
 
 def main():
     
