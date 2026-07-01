@@ -309,7 +309,7 @@ class MonteCarloDinamico:
         return resultados
 
     def plotar_resultados(self, resultados):
-        fig, axs = plt.subplots(1, 2, figsize=(13, 5))
+        fig, axs = plt.subplots(1, 3, figsize=(19, 5))
 
         for dt, resultado in resultados.items():
             realizacoes = np.arange(1, len(resultado["probabilidades"]) + 1)
@@ -335,6 +335,37 @@ class MonteCarloDinamico:
         axs[1].set_ylabel("Prob(E < 7.0)")
         axs[1].set_ylim(0.0, 1.0)
         axs[1].grid(True, linestyle=':', alpha=0.6)
+
+        energias_todas = np.concatenate([
+            resultado["energias"] for resultado in resultados.values()
+        ])
+        energia_min = np.min(energias_todas)
+        energia_max = np.max(energias_todas)
+        if np.isclose(energia_min, energia_max):
+            energia_min -= 0.5
+            energia_max += 0.5
+        bins = np.linspace(energia_min, energia_max, 31)
+
+        for dt, resultado in resultados.items():
+            axs[2].hist(
+                resultado["energias"],
+                bins=bins,
+                alpha=0.55,
+                label=f'dt = {dt}',
+            )
+
+        axs[2].axvline(
+            7.0,
+            color='tab:red',
+            linestyle='--',
+            linewidth=1.5,
+            label='E = 7.0',
+        )
+        axs[2].set_title("Distribuição da energia")
+        axs[2].set_xlabel("Energia E")
+        axs[2].set_ylabel("Frequência")
+        axs[2].grid(True, linestyle=':', alpha=0.6)
+        axs[2].legend()
 
         fig.suptitle("Análise Dinâmica do Gêmeo Digital Completo")
         plt.tight_layout()
