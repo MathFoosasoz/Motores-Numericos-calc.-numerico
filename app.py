@@ -6,15 +6,15 @@ from data_structures import GeraGrafo
 from analysis import complexity_analysis
 from plotting import plot_relaxamento_problema3
 from analise_falhas import RandomFail, resolver_vazao_estacionaria, avaliar_convergencia_monte_carlo, varredura_probabilidade_individual
-from sensitivity_analysis import P1_3_GD, P2_3_GD, prob_base_3_GD
+from sensitivity_analysis import P2_3_GD, prob_base_3_GD
 
 def main():
     
     config_base = env.CONFIG_MH
 
-    solver_p1 = P1_3_GD(config_base)
-    solver_p1.resolver_P1(Tc_nom=25.0, H_nom=1000.0e-6)
-
+    #P2_PARTE_3
+    config_base["TIME_END"] = 0.09 
+    config_base["DT"] = 1.5 
     solver_p2 = P2_3_GD(config_base)
     solver_p2.resolver_P2(E_target=7.5, H0=1000.0e-6, Tc=25.0)
 

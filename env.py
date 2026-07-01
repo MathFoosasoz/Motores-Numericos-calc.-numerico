@@ -147,7 +147,7 @@ CONFIG_MH = {
     # Time
     "DT": 0.025,
     "DT_VALUES": [0.00625, 0.0125, 0.025, 0.05],
-    "TIME_END": 12.0,
+    "TIME_END": 12,
 
     #Deslocamento de referência adimensional
     "W0_FACTOR": 0.01,
