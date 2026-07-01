@@ -2,12 +2,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import CubicSpline, interp1d
 from scipy.sparse.linalg import factorized
+from scipy import sparse
+from scipy.interpolate import RegularGridInterpolator
 import time
 
+import env
 from data_structures import GeraGrafo
 from hydraulics import Hydraulics_p3
 from mechanic_hydraulic import MechanicHydraulic
 from plotting import plot_aprox_dados, plot_fitting
+from hydraulic_thermal import Hydraulic_to_Thermal
+
 
 def RandomFail(C_original , p_0, f_obs):
 
@@ -306,3 +311,260 @@ class aprox_dados():
 
         plot_fitting(np.linspace(3, 15, 13), errs, errs_ruido)
 
+
+class MechanicHydraulicMonteCarlo(MechanicHydraulic):
+
+    def __init__(self, config):
+        super().__init__(config)
+        self.condutancias_amostra = None
+
+    def definir_condutancias(self, condutancias):
+        self.condutancias_amostra = np.asarray(condutancias, dtype=float).copy()
+
+    def montar_matriz_rede_adimensional(self, largura_canal=None):
+        if self.condutancias_amostra is None:
+            return super().montar_matriz_rede_adimensional(largura_canal)
+
+        escalas = self.calcular_escalas()
+        C = self.condutancias_amostra
+
+        A_fisico = sparse.lil_matrix((self.num_nodes, self.num_nodes))
+        for index, conectivity in enumerate(C):
+            from_node = self.conec[index, 0]
+            to_node = self.conec[index, 1]
+
+            A_fisico[from_node, from_node] += conectivity
+            A_fisico[to_node, to_node] += conectivity
+            A_fisico[to_node, from_node] -= conectivity
+            A_fisico[from_node, to_node] -= conectivity
+
+        A_fisico = A_fisico.tocsr()
+        fator_adimensional = escalas["p_ref"] / (escalas["v_ref"] * self.R ** 2)
+        A = (A_fisico * fator_adimensional).tolil()
+
+        A[self.node_inlet, :] = 0.0
+        A[self.node_inlet, self.node_inlet] = 1.0
+
+        return A.tocsr(), A_fisico, C, escalas
+
+
+class MonteCarloDinamico:
+
+    def __init__(self, r_cond=0.0005, N_termico=(241, 121), N_quadratura=1000):
+        config_mh = dict(env.CONFIG_MH)
+        config_mh["N"] = (51, 51)
+        config_mh["INLET_PRESSURE"] = 5.0e3
+        config_mh["CHANNEL_WIDTH"] = 1000.0e-6
+        config_mh["TIME_END"] = 4.0
+
+        config_ht = dict(env.CONFIG_HT)
+        config_ht["N"] = N_termico
+        config_ht["SOURCE"] = 5.0e5
+        config_ht["PIPE_AREA"] = (1000.0e-6) ** 2
+
+        self.modelo_dinamico = MechanicHydraulicMonteCarlo(config_mh)
+        self.modelo_termico = Hydraulic_to_Thermal(config_ht)
+        self.r_cond = r_cond
+        self.N_quadratura = N_quadratura
+
+        self.condutancias_originais = self.calcular_condutancias_termicas()
+
+    def calcular_condutancias_termicas(self):
+        temperaturas, _, _, _ = self.modelo_termico.solve_system_sparse(self.r_cond)
+
+        Nx, Ny = self.modelo_termico.thermal.N
+        Lx, Ly = self.modelo_termico.thermal.L
+        campo_temperaturas = temperaturas.reshape(Ny, Nx).T
+
+        interpolador = RegularGridInterpolator(
+            (np.linspace(0.0, Lx, Nx), np.linspace(0.0, Ly, Ny)),
+            campo_temperaturas,
+            method='linear',
+            bounds_error=False,
+            fill_value=None,
+        )
+
+        conec = self.modelo_termico.hydraulics.conec
+        Xno = self.modelo_termico.hydraulics.Xno
+        pontos_iniciais = Xno[conec[:, 0]]
+        pontos_finais = Xno[conec[:, 1]]
+
+        t = np.linspace(0.0, 1.0, self.N_quadratura + 1)
+        pesos = np.ones(self.N_quadratura + 1) / self.N_quadratura
+        pesos[0] *= 0.5
+        pesos[-1] *= 0.5
+
+        pontos = (
+            pontos_iniciais[:, np.newaxis, :]
+            + t[np.newaxis, :, np.newaxis]
+            * (pontos_finais - pontos_iniciais)[:, np.newaxis, :]
+        )
+        temperaturas_arestas = interpolador(
+            pontos.reshape(-1, 2)
+        ).reshape(len(conec), self.N_quadratura + 1) @ pesos
+
+        viscosidades = 0.001791 / (
+            1.0
+            + 0.03368 * temperaturas_arestas
+            + 0.000221 * temperaturas_arestas ** 2
+        )
+
+        area_canal = (1000.0e-6) ** 2
+        diametro_hidraulico = (4.0 * area_canal / np.pi) ** 0.5
+        constante_geometrica = np.pi * diametro_hidraulico ** 4 / 128.0
+        comprimentos = np.linalg.norm(pontos_finais - pontos_iniciais, axis=1)
+
+        return constante_geometrica / (viscosidades * comprimentos)
+
+    def calcular_energia(self, dt, condutancias):
+        self.modelo_dinamico.definir_condutancias(condutancias)
+        resultado = self.modelo_dinamico.resolver_caso_base(
+            N=(51, 51),
+            dt=dt,
+            tempo_final=4.0,
+            pressao_inlet=5.0e3,
+            largura_canal=1000.0e-6,
+            print_info=False,
+        )
+
+        escalas = self.modelo_dinamico.calcular_escalas()
+        potencia_referencia = (
+            escalas["p_ref"]
+            * escalas["v_ref"]
+            * self.modelo_dinamico.R ** 2
+        )
+        potencia_adimensional = resultado["potencia"] / potencia_referencia
+
+        return np.trapezoid(potencia_adimensional, resultado["time"])
+
+    def executar(self, p_O=0.35, f_obs=5, N=2000, plot=True):
+        dt_valores = [0.05, 0.1]
+        limite_energia = 7.0
+
+        sorteios = np.random.rand(N, self.modelo_dinamico.num_pipes)
+        mascaras_obstrucao = sorteios < p_O
+        resultados = {}
+
+        print("\nIniciando análise dinâmica do Gêmeo Digital Completo...")
+        for dt in dt_valores:
+            eventos_acumulados = 0
+            probabilidades = []
+            energias = []
+
+            print(f"Analisando passo de tempo dt = {dt}")
+            for n, mascara in enumerate(mascaras_obstrucao, start=1):
+                C_cenario = self.condutancias_originais.copy()
+                C_cenario[mascara] /= f_obs
+
+                energia = self.calcular_energia(dt, C_cenario)
+                energias.append(energia)
+
+                if energia < limite_energia:
+                    eventos_acumulados += 1
+
+                probabilidades.append(eventos_acumulados / n)
+
+                if n % 100 == 0:
+                    print(f"  {n}/{N} realizações concluídas")
+
+            resultados[dt] = {
+                "energias": np.array(energias),
+                "probabilidades": np.array(probabilidades),
+                "probabilidade_final": probabilidades[-1],
+            }
+
+        diferenca = (
+            resultados[0.1]["probabilidade_final"]
+            - resultados[0.05]["probabilidade_final"]
+        )
+
+        print("\nResultados do Problema 2:")
+        for dt in dt_valores:
+            print(
+                f"dt = {dt}: Prob(E < 7.0) = "
+                f"{resultados[dt]['probabilidade_final']:.5f}"
+            )
+        print(f"Diferença entre os estimadores: {diferenca:+.5f}")
+
+        if plot:
+            self.plotar_resultados(resultados)
+
+        return resultados
+
+    def plotar_resultados(self, resultados):
+        fig, axs = plt.subplots(1, 3, figsize=(19, 5))
+
+        for dt, resultado in resultados.items():
+            realizacoes = np.arange(1, len(resultado["probabilidades"]) + 1)
+            axs[0].plot(
+                realizacoes,
+                resultado["probabilidades"],
+                label=f'dt = {dt}',
+            )
+
+        axs[0].set_title("Convergência do estimador de Monte Carlo")
+        axs[0].set_xlabel("Número de realizações")
+        axs[0].set_ylabel("Prob(E < 7.0)")
+        axs[0].grid(True, linestyle=':', alpha=0.6)
+        axs[0].legend()
+        axs[0].set_ylim(0.0, 1.0)
+        
+        dt_valores = list(resultados.keys())
+        probabilidades = [
+            resultados[dt]["probabilidade_final"] for dt in dt_valores
+        ]
+        axs[1].plot(dt_valores, probabilidades, 'o-', color='tab:purple')
+        axs[1].set_title("Impacto do passo de tempo")
+        axs[1].set_xlabel("Passo de tempo dt")
+        axs[1].set_ylabel("Prob(E < 7.0)")
+        axs[1].set_ylim(0.0, 1.0)
+        axs[1].grid(True, linestyle=':', alpha=0.6)
+
+        energias_todas = np.concatenate([
+            resultado["energias"] for resultado in resultados.values()
+        ])
+        energia_min = np.min(energias_todas)
+        energia_max = np.max(energias_todas)
+        if np.isclose(energia_min, energia_max):
+            energia_min -= 0.5
+            energia_max += 0.5
+        bins = np.linspace(energia_min, energia_max, 31)
+
+        for dt, resultado in resultados.items():
+            axs[2].hist(
+                resultado["energias"],
+                bins=bins,
+                alpha=0.55,
+                label=f'dt = {dt}',
+            )
+
+        axs[2].axvline(
+            7.0,
+            color='tab:red',
+            linestyle='--',
+            linewidth=1.5,
+            label='E = 7.0',
+        )
+        axs[2].set_title("Distribuição da energia")
+        axs[2].set_xlabel("Energia E")
+        axs[2].set_ylabel("Frequência")
+        axs[2].grid(True, linestyle=':', alpha=0.6)
+        axs[2].legend()
+
+        fig.suptitle("Análise Dinâmica do Gêmeo Digital Completo")
+        plt.tight_layout()
+        plt.savefig(
+            "comparacao_passo_tempo_monte_carlo.png",
+            dpi=300,
+            bbox_inches='tight',
+        )
+        plt.show()
+
+
+def executar_monte_carlo_dinamico(p_O=0.35, f_obs=5, N=2000, plot=True):
+    analise = MonteCarloDinamico(
+        r_cond=0.0005,
+        N_termico=(241, 121),
+        N_quadratura=1000,
+    )
+    return analise.executar(p_O=p_O, f_obs=f_obs, N=N, plot=plot)
