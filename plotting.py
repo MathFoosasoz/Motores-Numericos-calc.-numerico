@@ -29,7 +29,7 @@ def PlotaRede(conec, Xno, p=None, q=None, fig=None, ax=None, show=False):
     fig_size=(10, 10)
     cmap_name="coolwarm"
     node_size=500
-    show_flux_labels=True
+    show_flux_labels=False
     arrow_scale=0.05
     text_scale=1.1
     save_path=None
@@ -104,6 +104,7 @@ def PlotaRede(conec, Xno, p=None, q=None, fig=None, ax=None, show=False):
               )
 
     # ---- Node labels ----
+    """
     if p is not None:
       for node, (x, y) in enumerate(coord):
           ax.text(x, y, str(node),
@@ -112,6 +113,8 @@ def PlotaRede(conec, Xno, p=None, q=None, fig=None, ax=None, show=False):
                   ha="right", va="bottom", fontsize=12 * text_scale,
                   color="black", zorder=5)
 
+    """
+    
     # ---- Final adjustments ----
     ax.set_aspect("equal")
     if not overlay:

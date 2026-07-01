@@ -12,6 +12,7 @@ def main():
     #============================= Monte Carlo ========================
     Xno, conec = GeraGrafo(env.CONFIG_FALHAS["LEVELS"]);
     Xno = Xno * 0.001
+    
     config_base = env.CONFIG_FALHAS
 
     print("=== CALIBRANDO PONTO DE OPERAÇÃO OPERACIONAL ===")
