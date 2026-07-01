@@ -6,9 +6,11 @@ from data_structures import GeraGrafo
 from analysis import complexity_analysis
 from plotting import plot_relaxamento_problema3
 from analise_falhas import RandomFail, resolver_vazao_estacionaria, avaliar_convergencia_monte_carlo, varredura_probabilidade_individual, aprox_dados
+from P2_PARTE_3_GD import P2_3_GD, prob_base_3_GD
 
 def main():
 
+    #============================= Monte Carlo ========================
     #============================= Monte Carlo ========================
     Xno, conec = GeraGrafo(env.CONFIG_FALHAS["LEVELS"]);
     Xno = Xno * 0.001
@@ -31,6 +33,12 @@ def main():
     print("Disparando loops estocásticos de Monte Carlo")
     N_convergido = avaliar_convergencia_monte_carlo(conec, Xno, config_base, p_O=0.35, f_obs=5, N_max=4000)
     varredura_probabilidade_individual(conec, Xno, config_base, N_estatistico=N_convergido)
+
+    #P2_PARTE_3
+    config_base["TIME_END"] = 0.09 
+    config_base["DT"] = 1.5 
+    solver_p2 = P2_3_GD(config_base)
+    solver_p2.resolver_P2(E_target=7.5, H0=1000.0e-6, Tc=25.0)
 
 
     # ================================== Interpolação e Regressão ===============================
