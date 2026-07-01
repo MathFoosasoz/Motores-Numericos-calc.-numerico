@@ -90,6 +90,8 @@ class prob_base_3_GD:
 class P2_3_GD(prob_base_3_GD):
 
     def __init__(self, config):
+        config["TIME_END"] = 0.09 
+        config["DT"] = 1.5 
         super().__init__(config)
 
     def resolver_P2(self, E_target=7.5, funcional_alvo="energia_total_adim", H0=1000.0e-6, Tc=25.0, tol=1e-5, max_iter=50):

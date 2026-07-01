@@ -11,7 +11,6 @@ from P2_PARTE_3_GD import P2_3_GD, prob_base_3_GD
 def main():
 
     #============================= Monte Carlo ========================
-    #============================= Monte Carlo ========================
     Xno, conec = GeraGrafo(env.CONFIG_FALHAS["LEVELS"]);
     Xno = Xno * 0.001
     config_base = env.CONFIG_FALHAS
@@ -34,18 +33,15 @@ def main():
     N_convergido = avaliar_convergencia_monte_carlo(conec, Xno, config_base, p_O=0.35, f_obs=5, N_max=4000)
     varredura_probabilidade_individual(conec, Xno, config_base, N_estatistico=N_convergido)
 
-    #P2_PARTE_3
-    config_base["TIME_END"] = 0.09 
-    config_base["DT"] = 1.5 
-    solver_p2 = P2_3_GD(config_base)
-    solver_p2.resolver_P2(E_target=7.5, H0=1000.0e-6, Tc=25.0)
-
-
     # ================================== Interpolação e Regressão ===============================
 
     config_mh = env.CONFIG_MH
     aprox = aprox_dados(config_mh)
     aprox.run() # 31 plots!!!
+
+    #P2_PARTE_3
+    solver_p2 = P2_3_GD(config_base)
+    solver_p2.resolver_P2(E_target=7.5, H0=1000.0e-6, Tc=25.0)
 
     return
 
