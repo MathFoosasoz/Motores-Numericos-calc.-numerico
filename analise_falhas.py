@@ -324,7 +324,8 @@ class MonteCarloDinamico:
         axs[0].set_ylabel("Prob(E < 7.0)")
         axs[0].grid(True, linestyle=':', alpha=0.6)
         axs[0].legend()
-
+        axs[0].set_ylim(0.0, 1.0)
+        
         dt_valores = list(resultados.keys())
         probabilidades = [
             resultados[dt]["probabilidade_final"] for dt in dt_valores
