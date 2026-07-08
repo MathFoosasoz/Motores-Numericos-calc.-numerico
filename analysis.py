@@ -40,6 +40,7 @@ def complexity_analysis():
         })
         #np.mean e usado pra calcular a media entre as 10 repeticoes
 
+    """
     print("\nRESULTADOS:\n")
     for r in results:
         print(f"Level: {r['level']}")
@@ -47,7 +48,7 @@ def complexity_analysis():
         print(f"Tempo montagem: {r['assembly_time']:.6f} s")
         print(f"Tempo resolução: {r['solve_time']:.6f} s")
         print("-" * 30)
-
+    """
 
      # GERAR TABELA
     colunas = ["Level", "Nós", "Montagem (s)", "Resolução (s)"]

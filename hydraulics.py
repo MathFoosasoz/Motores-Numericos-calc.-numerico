@@ -116,10 +116,9 @@ class Hydraulics():
         self.calculate_flow_rate_and_potency()
 
         if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Solução das pressões em cada nó: {self.results['P']}")
-            print(f"Solução das vazões em cada cano: {self.results['Q']}")
-            print(f"Solução da Potência dissipada pelo sistema: {self.results['W']}\n\n")
+            print(f'=== {self.__class__.__name__} ===')
+            print(f'  p_max = {self.results["P"].max():.4e} Pa')
+            print(f'  W     = {self.results["W"]:.4e} W')
             
 
         if plot:
@@ -178,11 +177,10 @@ class Hydraulics_p1(Hydraulics):
         self.calculate_flow_rate_and_potency()
 
         if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f'=== {self.__class__.__name__} ===')
             print(f"Nós de injeção (INLET_FLOW_DICT): {self.inlet_flow_dict}")
-            print(f"Solução das pressões em cada nó:  {self.results['P']}")
-            print(f"Solução das vazões em cada cano:  {self.results['Q']}")
-            print(f"Potência dissipada pelo sistema:  {self.results['W']}\n\n")
+            print(f'p_max = {self.results["P"].max():.4e} Pa')
+            print(f'W     = {self.results["W"]:.4e} W')
 
         if plot:
             PlotaRede(self.conec, 1000 * self.Xno,
@@ -217,10 +215,10 @@ class Hydraulics_p2(Hydraulics):
         self.calculate_flow_rate_and_potency()
 
         if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Solução das pressões em cada nó: {self.results['P']}")
-            print(f"Solução das vazões em cada cano: {self.results['Q']}")
-            print(f"Solução da potência dissipada pelo sistema: {self.results['W']}\n\n")
+            print(f'=== {self.__class__.__name__} ===')
+            print(f'  Pressões prescritas: {self.inlet_pressure}')
+            print(f'  p_max = {self.results["P"].max():.4e} Pa')
+            print(f'  W     = {self.results["W"]:.4e} W')
             
 
         if plot:
@@ -265,11 +263,10 @@ class Hydraulics_p3(Hydraulics):
         self.calculate_flow_rate_and_potency()
 
         if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"Solução das pressões em cada nó: {self.results['P']}")
-            print(f"Solução das vazões em cada cano: {self.results['Q']}")
-            print(f"Solução da potência dissipada pelo sistema: {self.results['W']}")
-            print(f"Vazão no ponto de inlet: {self.results['Q_inlet']}\n\n")
+            print(f'=== {self.__class__.__name__} ===')
+            print(f'  Δp = {self.inlet - self.outlet:.2f} Pa')
+            print(f'  Q_inlet calculado = {self.results["Q_inlet"]:.4e} m³/s')
+            print(f'  W = {self.results["W"]:.4e} W')
             
 
         if plot:
@@ -335,8 +332,9 @@ class Hydraulics_p4(Hydraulics):
         max_pressures = self.find_max_pressures_over_time()
 
         if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"pressões ao longo do tempo: {max_pressures}\n\n")
+            print(f'=== {self.__class__.__name__} ===')
+            print(f'  p_max global = {max_pressures.max():.4e} Pa')
+            print(f'  p_min global = {max_pressures.min():.4e} Pa')
 
         if plot:
             PlotaMaxPressao(max_pressures, self.time)
@@ -426,8 +424,8 @@ class Hydraulics_p5(Hydraulics):
         max_pressures = self.find_max_pressures_over_time()
 
         if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
-            print(f"pressões ao longo do tempo: {max_pressures}\n\n")
+            print(f'=== {self.__class__.__name__} ===')
+            print(f'  p_max global = {max_pressures.max():.4e} Pa')
 
         if plot:
             PlotaMaxPressao(max_pressures, self.time)
@@ -477,7 +475,7 @@ class Hydraulics_p6(Hydraulics):
         max_pressures = self.find_max_pressures_over_time()
 
         if print_info:
-            print(f"Resultados para classe: {self.__class__.__name__}")
+            print(f'=== {self.__class__.__name__} ===')
             print(f"Pressão máxima inicial (t=0): {max_pressures[0]:.2f} Pa")
             print(f"Pressão máxima final (t=10): {max_pressures[-1]:.2f} Pa\n\n")
 
